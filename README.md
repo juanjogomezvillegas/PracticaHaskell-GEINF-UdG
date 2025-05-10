@@ -4,7 +4,7 @@
 
 - Juan José Gómez villegas (u1987338@campus.udg.edu)
 
-- Company (uCompany@campus.udg.edu)
+- Guillem Pozo Sebastián (u1972840@campus.udg.edu)
 
 ## Definicions
 
