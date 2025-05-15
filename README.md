@@ -4,7 +4,7 @@
 
 - Juan José Gómez villegas (u1987338@campus.udg.edu)
 
-- Company (uCompany@campus.udg.edu)
+- Guillem Pozo Sebastián (u1972840@campus.udg.edu)
 
 ## Definicions
 
@@ -104,3 +104,7 @@ Aquesta informació és personal segons la RGPD.
 ## Clàusula de Completud i Modificacions
 
 Un cop enviada la pràctica ja no es pot modificar.
+
+# Avís legal
+
+Els apartats del present contracte s'han extret de les diapositives de l'assignatura Legislació i Ètica Professional. 
