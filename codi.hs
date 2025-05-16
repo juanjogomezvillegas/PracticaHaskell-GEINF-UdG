@@ -6,23 +6,24 @@ import Distribution.PackageDescription (Condition(Var))
 
 -- CONTINGUT DE LA PRÀCTICA
 
+-- definicions de tipus
 data LT = Variable String | Aplicacio LT LT | Abstraccio String LT deriving Eq
+
+data LTdB = VariabledB Int | AplicaciodB LTdB LTdB | AbstracciodB LTdB deriving Eq
+
+type Substitucio m v m' = [(m,v,m')]
+
+type Context = String
 
 instance Show LT where
     show (Variable a) = show a
     show (Aplicacio t1 t2) = "(" ++ show t1 ++ " " ++ show t2 ++ ")"
-    show (Abstraccio a t1) = "(\\" ++ show a ++ "." ++ show t1 ++ ")"
-
-data LTdB = VariabledB Int | AplicaciodB LTdB LTdB | AbstracciodB LTdB deriving Eq
+    show (Abstraccio a t1) = "(\\" ++ show a ++ ". " ++ show t1 ++ ")"
 
 instance Show LTdB where
     show (VariabledB a) = show a
     show (AplicaciodB t1 t2) = "(" ++ show t1 ++ " " ++ show t2 ++ ")"
-    show (AbstracciodB t1) = "(\\" ++ "." ++ show t1 ++ ")"
-
-type Substitucio = String
-
-type Context = String
+    show (AbstracciodB t1) = "(\\" ++ ". " ++ show t1 ++ ")"
 
 -- freeAndboundVars, donat un LT retorna una tupla amb una llista de freeVars i una llista de boundVars
 --freeAndboundVars :: LT -> ([],[])
