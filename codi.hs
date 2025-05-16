@@ -5,13 +5,9 @@
 
 -- CONTINGUT DE LA PRÀCTICA
 
-data LT = Char
-instance Show LT
-instance Eq LT
+data LT = Char deriving (Show,Eq)
 
-data LTdB = Char
-instance Show LTdB
-instance Eq LTdB
+data LTdB = Char deriving (Show,Eq)
 
 type Substitucio = String
 
