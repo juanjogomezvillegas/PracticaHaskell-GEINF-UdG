@@ -29,18 +29,18 @@ type Substitucio m v m' = [(m,v,m')]
 type Context = String
 
 -- funcions auxiliars
--- concatenarTuples
-concatenarTuples :: ([String],[String]) -> ([String],[String]) -> ([String],[String])
-concatenarTuples (a,b) (c,d) = (a ++ c,b ++ d)
+-- concatTuples, operador que concatena o intercalar dues llistes que són a dins d'una tupla
+concatTuples :: ([String],[String]) -> ([String],[String]) -> ([String],[String])
+(a,b) `concatTuples` (c,d) = (a ++ c,b ++ d)
 
 -- freeAndboundVars, donat un LT retorna una tupla amb una llista de freeVars i una llista de boundVars
 freeAndboundVars :: LT -> ([String],[String])
 freeAndboundVars t = freeAndboundVarsAux t [] []
 
 freeAndboundVarsAux :: LT -> [String] -> [String] -> ([String],[String])
+freeAndboundVarsAux (Abstraccio a t1) freeVars boundVars = (freeAndboundVarsAux t1 freeVars (a:boundVars))
+freeAndboundVarsAux (Aplicacio t1 t2) freeVars boundVars = (freeAndboundVarsAux t1 freeVars boundVars) `concatTuples` (freeAndboundVarsAux t2 freeVars boundVars)
 freeAndboundVarsAux (Variable a) freeVars boundVars = if a `elem` boundVars then (freeVars,boundVars) else (a:freeVars,boundVars)
-freeAndboundVarsAux (Aplicacio t1 t2) freeVars boundVars = concatenarTuples (freeAndboundVarsAux t1 freeVars boundVars) (freeAndboundVarsAux t2 freeVars boundVars)
-freeAndboundVarsAux (Abstraccio a t1) freeVars boundVars = freeAndboundVarsAux t1 freeVars (a:boundVars)
 
 -- subst, donat un LT i una Substitucio, retorna el mateix LT al que se li ha aplicat la Substitucio
 --subst :: LT -> Substitucio -> LT
