@@ -1,5 +1,3 @@
-import Distribution.PackageDescription (Condition(Var))
-
 -- Pràctica de Haskell
 -- Copyright (c) 2025 Juan José Gómez Villegas (u1987338@campus.udg.edu), Company (uCompany@campus.udg.edu)
 
@@ -9,21 +7,21 @@ import Distribution.PackageDescription (Condition(Var))
 -- definicions de tipus
 data LT = Variable String | Aplicacio LT LT | Abstraccio String LT deriving Eq
 
-data LTdB = VariabledB Int | AplicaciodB LTdB LTdB | AbstracciodB LTdB deriving Eq
-
-type Substitucio m v m' = [(m,v,m')]
-
-type Context = String
-
 instance Show LT where
     show (Variable a) = show a
     show (Aplicacio t1 t2) = "(" ++ show t1 ++ " " ++ show t2 ++ ")"
     show (Abstraccio a t1) = "(\\" ++ show a ++ ". " ++ show t1 ++ ")"
 
+data LTdB = VariabledB Int | AplicaciodB LTdB LTdB | AbstracciodB LTdB deriving Eq
+
 instance Show LTdB where
     show (VariabledB a) = show a
     show (AplicaciodB t1 t2) = "(" ++ show t1 ++ " " ++ show t2 ++ ")"
     show (AbstracciodB t1) = "(\\" ++ ". " ++ show t1 ++ ")"
+
+type Substitucio m v m' = [(m,v,m')]
+
+type Context = String
 
 -- freeAndboundVars, donat un LT retorna una tupla amb una llista de freeVars i una llista de boundVars
 --freeAndboundVars :: LT -> ([],[])
@@ -33,6 +31,10 @@ instance Show LTdB where
 
 -- esta_normal, diu si LT ja està en forma normal
 --esta_normal :: LT -> Bool
+--esta_normal (Variable a) = True
+--esta_normal t | t == (Variable _) = True
+--              | t == (Aplicacio t1 t2) = (esta_normal t1) (&&) (esta_normal t2)
+--              | t == (Abstraccio a t1) = (esta_normal t1)
 
 -- beta_redueix, rep un LT que sigui un redex, i el resol
 --beta_redueix :: LT -> LT
