@@ -5,19 +5,29 @@
 -- CONTINGUT DE LA PRÀCTICA
 
 -- definicions de tipus
-data LT = Variable String | Aplicacio LT LT | Abstraccio String LT deriving Eq
+data LT = Variable String | Aplicacio LT LT | Abstraccio String LT
 
 instance Show LT where
     show (Variable a) = show a
     show (Aplicacio t1 t2) = "(" ++ show t1 ++ " " ++ show t2 ++ ")"
     show (Abstraccio a t1) = "(\\" ++ show a ++ ". " ++ show t1 ++ ")"
 
-data LTdB = VariabledB Int | AplicaciodB LTdB LTdB | AbstracciodB LTdB deriving Eq
+instance Eq LT where
+    Eq (Variable a) = 
+    Eq (Aplicacio t1 t2) = 
+    Eq (Abstraccio a t1) = 
+
+data LTdB = VariabledB Int | AplicaciodB LTdB LTdB | AbstracciodB LTdB
 
 instance Show LTdB where
     show (VariabledB a) = show a
     show (AplicaciodB t1 t2) = "(" ++ show t1 ++ " " ++ show t2 ++ ")"
     show (AbstracciodB t1) = "(\\" ++ ". " ++ show t1 ++ ")"
+
+instance Eq LTdB where
+    Eq (VariabledB a) = 
+    Eq (AplicaciodB t1 t2) = 
+    Eq (AbstracciodB t1) = 
 
 type Substitucio m v m' = [(m,v,m')]
 
