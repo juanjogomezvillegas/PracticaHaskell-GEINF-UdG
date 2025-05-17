@@ -13,21 +13,16 @@ instance Show LT where
     show (Abstraccio a t1) = "(\\" ++ show a ++ ". " ++ show t1 ++ ")"
 
 instance Eq LT where
-    Eq (Variable a) = 
-    Eq (Aplicacio t1 t2) = 
-    Eq (Abstraccio a t1) = 
+    (==) (Variable a) (Variable b) = True
+    (==) (Aplicacio t1 t2) (Aplicacio t1' t2') = (||) ((&&) (t1 == t1') (t2 == t2')) ((&&) (t1 == t2') (t2 == t1'))
+    (==) (Abstraccio _ t1) (Abstraccio _ t1') = t1 == t1'
 
-data LTdB = VariabledB Int | AplicaciodB LTdB LTdB | AbstracciodB LTdB
+data LTdB = VariabledB Int | AplicaciodB LTdB LTdB | AbstracciodB LTdB deriving Eq
 
 instance Show LTdB where
     show (VariabledB a) = show a
     show (AplicaciodB t1 t2) = "(" ++ show t1 ++ " " ++ show t2 ++ ")"
     show (AbstracciodB t1) = "(\\" ++ ". " ++ show t1 ++ ")"
-
-instance Eq LTdB where
-    Eq (VariabledB a) = 
-    Eq (AplicaciodB t1 t2) = 
-    Eq (AbstracciodB t1) = 
 
 type Substitucio m v m' = [(m,v,m')]
 
@@ -76,10 +71,9 @@ type Context = String
 exemple :: LT
 exemple = Abstraccio "x" (Aplicacio (Variable "x") (Variable "y"))
 
-exempledB :: LTdB
-exempledB = AbstracciodB (AplicaciodB (VariabledB 0) (AbstracciodB (VariabledB 1)))
+exempleDos :: LT
+exempleDos = Abstraccio "y" (Aplicacio (Variable "y") (Aplicacio (Variable "z") (Variable "c")))
 
 main :: IO ()
 main = do
     putStrLn(show exemple)
-    putStrLn(show exempledB)
