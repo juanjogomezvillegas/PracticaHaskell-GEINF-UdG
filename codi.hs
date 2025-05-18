@@ -29,6 +29,7 @@ type Substitucio m v m' = [(m,v,m')]
 type Context = String
 
 -- Funcions auxiliars
+
 -- eliminarDuplicats, funció que elimina els elements duplicats d'una llista
 eliminarDuplicats :: [String] -> [String]
 eliminarDuplicats = foldr cond []
