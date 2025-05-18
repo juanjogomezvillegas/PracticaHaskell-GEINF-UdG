@@ -28,7 +28,7 @@ type Substitucio m v m' = [(m,v,m')]
 
 type Context = String
 
--- funcions auxiliars
+-- Funcions auxiliars
 -- eliminarDuplicats, funció que elimina els elements duplicats d'una llista
 eliminarDuplicats :: [String] -> [String]
 eliminarDuplicats = foldr cond []
@@ -39,7 +39,7 @@ eliminarDuplicats = foldr cond []
 concatTuples :: ([String],[String]) -> ([String],[String]) -> ([String],[String])
 (a,b) `concatTuples` (c,d) = (eliminarDuplicats (a ++ c),eliminarDuplicats (b ++ d)) 
 
--- funcions principals
+-- Funcions principals
 
 -- freeAndboundVars, donat un LT retorna una tupla amb una llista de freeVars i una llista de boundVars
 freeAndboundVars :: LT -> ([String],[String])
@@ -116,6 +116,12 @@ second = (Ab "x" (Ap (Va "x") false))
 
 succ :: LT
 succ = (Ab "n" (Ab "f" (Ab "x" (Ap ((Ap (Va "n") (Va "f"))) ((Ap (Va "f") (Va "x")))))))
+
+prefn :: LT
+prefn = (Ab "f" (Ab "p" (Ab "p" (Ap (Ap (Va "p") false) (cond (Ap first (Va "p")) (Ap second (Va "p")) (Ap (Va "f") (Ap second (Va "p"))))))))
+
+prec :: LT
+prec = (Ab "n" (Ab "f" (Ab "x" (Ap second (Ap (Ap (Va "n") (Ap (prefn) (Va "f"))) (Ab "p" (Ap (Ap (Va "p") true) (Va "x"))))))))
 
 suma :: LT
 suma = (Ab "m" (Ab "n" (Ab "f" (Ab "x" (Ap ((Ap (Va "m") (Va "f"))) ((Ap (Ap (Va "n") (Va "f")) (Va "x"))))))))
