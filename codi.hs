@@ -2,56 +2,63 @@ import Distribution.PackageDescription (Condition(Var))
 -- Pràctica de Haskell
 -- Copyright (c) 2025 Juan José Gómez Villegas (u1987338@campus.udg.edu), Company (uCompany@campus.udg.edu)
 
-
 -- CONTINGUT DE LA PRÀCTICA
 
 -- definicions de tipus
-data LT = Variable String | Aplicacio LT LT | Abstraccio String LT
+data LT = Va String | Ap LT LT | Ab String LT
 
 instance Show LT where
-    show (Variable a) = show a
-    show (Aplicacio t1 t2) = "(" ++ show t1 ++ " " ++ show t2 ++ ")"
-    show (Abstraccio a t1) = "(\\" ++ show a ++ ". " ++ show t1 ++ ")"
+    show (Va a) = a
+    show (Ap t1 t2) = "(" ++ show t1 ++ " " ++ show t2 ++ ")"
+    show (Ab a t1) = "(\\" ++ a ++ ". " ++ show t1 ++ ")"
 
 instance Eq LT where
-    (==) (Variable _) (Variable _) = True
-    (==) (Aplicacio t1 t2) (Aplicacio t1' t2') = (||) ((&&) (t1 == t1') (t2 == t2')) ((&&) (t1 == t2') (t2 == t1'))
-    (==) (Abstraccio _ t1) (Abstraccio _ t1') = t1 == t1'
+    (==) (Va _) (Va _) = True
+    (==) (Ap t1 t2) (Ap t1' t2') = (||) ((&&) (t1 == t1') (t2 == t2')) ((&&) (t1 == t2') (t2 == t1'))
+    (==) (Ab _ t1) (Ab _ t1') = t1 == t1'
 
-data LTdB = VariabledB Int | AplicaciodB LTdB LTdB | AbstracciodB LTdB deriving Eq
+data LTdB = VadB Int | ApdB LTdB LTdB | AbdB LTdB deriving Eq
 
 instance Show LTdB where
-    show (VariabledB a) = show a
-    show (AplicaciodB t1 t2) = "(" ++ show t1 ++ " " ++ show t2 ++ ")"
-    show (AbstracciodB t1) = "(\\" ++ ". " ++ show t1 ++ ")"
+    show (VadB a) = show a
+    show (ApdB t1 t2) = "(" ++ show t1 ++ " " ++ show t2 ++ ")"
+    show (AbdB t1) = "(\\" ++ ". " ++ show t1 ++ ")"
 
 type Substitucio m v m' = [(m,v,m')]
 
 type Context = String
 
 -- funcions auxiliars
+-- eliminarDuplicats, funció que elimina els elements duplicats d'una llista
+eliminarDuplicats :: [String] -> [String]
+eliminarDuplicats = foldr cond []
+    where cond x l | x `elem` l = l
+                   | otherwise = x:l
+
 -- concatTuples, operador que concatena o intercalar dues llistes que són a dins d'una tupla
 concatTuples :: ([String],[String]) -> ([String],[String]) -> ([String],[String])
-(a,b) `concatTuples` (c,d) = (a ++ c,b ++ d)
+(a,b) `concatTuples` (c,d) = (eliminarDuplicats (a ++ c),eliminarDuplicats (b ++ d)) 
+
+-- funcions principals
 
 -- freeAndboundVars, donat un LT retorna una tupla amb una llista de freeVars i una llista de boundVars
 freeAndboundVars :: LT -> ([String],[String])
 freeAndboundVars t = freeAndboundVarsAux t [] []
 
 freeAndboundVarsAux :: LT -> [String] -> [String] -> ([String],[String])
-freeAndboundVarsAux (Abstraccio a t1) freeVars boundVars = (freeAndboundVarsAux t1 freeVars (a:boundVars))
-freeAndboundVarsAux (Aplicacio t1 t2) freeVars boundVars = (freeAndboundVarsAux t1 freeVars boundVars) `concatTuples` (freeAndboundVarsAux t2 freeVars boundVars)
-freeAndboundVarsAux (Variable a) freeVars boundVars = if a `elem` boundVars then (freeVars,boundVars) else (a:freeVars,boundVars)
+freeAndboundVarsAux (Va a) freeVars boundVars = if a `elem` boundVars then (freeVars,boundVars) else (a:freeVars,boundVars)
+freeAndboundVarsAux (Ab a t1) freeVars boundVars = (freeAndboundVarsAux t1 freeVars (a:boundVars))
+freeAndboundVarsAux (Ap t1 t2) freeVars boundVars = (freeAndboundVarsAux t1 freeVars boundVars) `concatTuples` (freeAndboundVarsAux t2 freeVars boundVars)
 
 -- subst, donat un LT i una Substitucio, retorna el mateix LT al que se li ha aplicat la Substitucio
 --subst :: LT -> Substitucio -> LT
 
 -- esta_normal, diu si LT ja està en forma normal
 esta_normal :: LT -> Bool
-esta_normal (Variable a) = True
-esta_normal (Aplicacio (Abstraccio _ _) _) = False
-esta_normal (Abstraccio _ t1) = (esta_normal t1)
-esta_normal (Aplicacio t1 t2) = (&&) (esta_normal t1) (esta_normal t2)
+esta_normal (Va a) = True
+esta_normal (Ap (Ab _ _) _) = False
+esta_normal (Ab _ t1) = (esta_normal t1)
+esta_normal (Ap t1 t2) = (&&) (esta_normal t1) (esta_normal t2)
 
 -- beta_redueix, rep un LT que sigui un redex, i el resol
 --beta_redueix :: LT -> LT
@@ -81,49 +88,49 @@ esta_normal (Aplicacio t1 t2) = (&&) (esta_normal t1) (esta_normal t2)
 
 -- Alguns combinadors i definicions del meta-llenguatge
 iden :: LT
-iden = (Abstraccio "x" (Variable "X"))
+iden = (Ab "x" (Va "X"))
 
 true :: LT
-true = (Abstraccio "x" (Abstraccio "y" (Variable "x")))
+true = (Ab "x" (Ab "y" (Va "x")))
 
 false :: LT
-false = (Abstraccio "x" (Abstraccio "y" (Variable "y")))
+false = (Ab "x" (Ab "y" (Va "y")))
 
 not :: LT
-not = (Abstraccio "t" (Aplicacio false true))
+not = (Ab "t" (Ap false true))
 
 cond :: LT -> LT -> LT -> LT
-cond e e1 e2 = (Aplicacio (Aplicacio e e1) e2)
+cond e e1 e2 = (Ap (Ap e e1) e2)
 
 and :: LT
-and = (Abstraccio "x" (Abstraccio "y" (cond (Variable "x") (Variable "y") false)))
+and = (Ab "x" (Ab "y" (cond (Va "x") (Va "y") false)))
 
 tupla :: LT
-tupla = (Abstraccio "x" (Abstraccio "y" (Abstraccio "p" (Aplicacio (Aplicacio (Variable "p") (Variable "x")) (Variable "y")))))
+tupla = (Ab "x" (Ab "y" (Ab "p" (Ap (Ap (Va "p") (Va "x")) (Va "y")))))
 
 first :: LT
-first = (Abstraccio "x" (Aplicacio (Variable "x") true))
+first = (Ab "x" (Ap (Va "x") true))
 
 second :: LT
-second = (Abstraccio "x" (Aplicacio (Variable "x") false))
+second = (Ab "x" (Ap (Va "x") false))
 
 succ :: LT
-succ = (Abstraccio "n" (Abstraccio "f" (Abstraccio "x" (Aplicacio ((Aplicacio (Variable "n") (Variable "f"))) ((Aplicacio (Variable "f") (Variable "x")))))))
+succ = (Ab "n" (Ab "f" (Ab "x" (Ap ((Ap (Va "n") (Va "f"))) ((Ap (Va "f") (Va "x")))))))
 
 suma :: LT
-suma = (Abstraccio "m" (Abstraccio "n" (Abstraccio "f" (Abstraccio "x" (Aplicacio ((Aplicacio (Variable "m") (Variable "f"))) ((Aplicacio (Aplicacio (Variable "n") (Variable "f")) (Variable "x"))))))))
+suma = (Ab "m" (Ab "n" (Ab "f" (Ab "x" (Ap ((Ap (Va "m") (Va "f"))) ((Ap (Ap (Va "n") (Va "f")) (Va "x"))))))))
 
 producte :: LT
-producte = (Abstraccio "m" (Abstraccio "n" (Abstraccio "f" (Abstraccio "x" ((Aplicacio (Aplicacio (Variable "m") (Aplicacio (Variable "n") (Variable "f"))) (Variable "x")))))))
+producte = (Ab "m" (Ab "n" (Ab "f" (Ab "x" ((Ap (Ap (Va "m") (Ap (Va "n") (Va "f"))) (Va "x")))))))
 
 eszero :: LT
-eszero = (Abstraccio "n" (Aplicacio (Aplicacio (Variable "n") (Abstraccio "x" false)) true))
+eszero = (Ab "n" (Ap (Ap (Va "n") (Ab "x" false)) true))
 
 y :: LT
-y = (Abstraccio "f" (Aplicacio (Abstraccio "x" (Aplicacio (Variable "f") (Aplicacio (Variable "x") (Variable "x")))) (Abstraccio "x" (Aplicacio (Variable "f") (Aplicacio (Variable "x") (Variable "x"))))))
+y = (Ab "f" (Ap (Ab "x" (Ap (Va "f") (Ap (Va "x") (Va "x")))) (Ab "x" (Ap (Va "f") (Ap (Va "x") (Va "x"))))))
 
 t :: LT
-t = (Aplicacio (Abstraccio "x" (Abstraccio "y" (Aplicacio (Variable "y") (Aplicacio (Aplicacio (Variable "x") (Variable "x")) (Variable "y"))))) (Abstraccio "x" (Abstraccio "y" (Aplicacio (Variable "y") (Aplicacio (Aplicacio (Variable "x") (Variable "x")) (Variable "y"))))))
+t = (Ap (Ab "x" (Ab "y" (Ap (Va "y") (Ap (Ap (Va "x") (Va "x")) (Va "y"))))) (Ab "x" (Ab "y" (Ap (Va "y") (Ap (Ap (Va "x") (Va "x")) (Va "y"))))))
 
 main :: IO ()
 main = do
