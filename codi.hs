@@ -24,7 +24,7 @@ instance Show LTdB where
     show (ApdB t1 t2) = "(" ++ show t1 ++ " " ++ show t2 ++ ")"
     show (AbdB t1) = "(\\" ++ ". " ++ show t1 ++ ")"
 
-type Substitucio m v m' = [(m,v,m')]
+type Substitucio m v m' = (m,v,m')
 
 type Context = String
 
@@ -63,6 +63,7 @@ esta_normal (Ap t1 t2) = (&&) (esta_normal t1) (esta_normal t2)
 
 -- beta_redueix, rep un LT que sigui un redex, i el resol
 --beta_redueix :: LT -> LT
+--beta_redueix (Ap (Ab a t) t') = subst t (Substitucio t a t')
 
 -- redueix_un_n, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reducció segons l'ordre normal
 --redueix_un_n :: LT -> LT
