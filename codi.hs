@@ -1,6 +1,6 @@
 import Distribution.PackageDescription (Condition(Var))
 -- Pràctica de Haskell
--- Copyright (c) 2025 Juan José Gómez Villegas (u1987338@campus.udg.edu), Company (uCompany@campus.udg.edu)
+-- Copyright (c) 2025 Juan José Gómez Villegas (u1987338@campus.udg.edu), Guillem Pozo Sebastián (u1972840@campus.udg.edu)
 
 -- CONTINGUT DE LA PRÀCTICA
 
