@@ -53,6 +53,7 @@ freeAndboundVarsAux (Ap t1 t2) freeVars boundVars = (freeAndboundVarsAux t1 free
 
 -- subst, donat un LT i una Substitucio, retorna el mateix LT al que se li ha aplicat la Substitucio
 --subst :: LT -> Substitucio -> LT
+--subst = 
 
 -- esta_normal, diu si LT ja està en forma normal
 esta_normal :: LT -> Bool
