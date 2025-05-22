@@ -1,4 +1,3 @@
-import Distribution.PackageDescription (Condition(Var))
 -- Pràctica de Haskell
 -- Copyright (c) 2025 Juan José Gómez Villegas (u1987338@campus.udg.edu), Guillem Pozo Sebastián (u1972840@campus.udg.edu)
 
@@ -24,7 +23,8 @@ instance Show LTdB where
     show (ApdB t1 t2) = "(" ++ show t1 ++ " " ++ show t2 ++ ")"
     show (AbdB t1) = "(\\" ++ ". " ++ show t1 ++ ")"
 
-type Substitucio m v m' = (m,v,m')
+-- una Substitucio és representa com M[v -> M'], per tant la v valor vell i la M' valor nou són Strings
+data Substitucio = Sub String String
 
 type Context = String
 
@@ -52,7 +52,14 @@ freeAndboundVarsAux (Ab a t1) freeVars boundVars = (freeAndboundVarsAux t1 freeV
 freeAndboundVarsAux (Ap t1 t2) freeVars boundVars = (freeAndboundVarsAux t1 freeVars boundVars) `concatTuples` (freeAndboundVarsAux t2 freeVars boundVars)
 
 -- subst, donat un LT i una Substitucio, retorna el mateix LT al que se li ha aplicat la Substitucio
---subst :: LT -> Substitucio -> LT
+subst :: LT -> Substitucio -> LT
+subst t v = substAux t v (freeAndboundVars t)
+
+-- substAux, el mateix subst però rebent també la tupla amb les llistes de variables lliures i lligades
+substAux :: LT -> Substitucio -> ([String],[String]) -> LT
+substAux (Va a) (Sub v v') l = if a == v && a `elem` (snd l) then (Va v') else (Va a)
+substAux (Ab a t1) (Sub v v') l = if a == v then (Ab v' (substAux t1 (Sub v v') l)) else (Ab a (substAux t1 (Sub v v') l))
+substAux (Ap t1 t2) (Sub v v') l = (Ap (substAux t1 (Sub v v') l) (substAux t2 (Sub v v') l))
 
 -- esta_normal, diu si LT ja està en forma normal
 esta_normal :: LT -> Bool
