@@ -72,13 +72,28 @@ esta_normal (Ap t1 t2) = (&&) (esta_normal t1) (esta_normal t2)
 
 -- beta_redueix, rep un LT que sigui un redex, i el resol
 --beta_redueix :: LT -> LT
---beta_redueix (Ap (Ab a t) t') = subst t (Substitucio t a t')
+beta_redueix :: LT -> LT
+beta_redueix (Ap (Ab a t1) t2) = subst t1 (Sub a (show t2))
+beta_redueix t = t
+
 
 -- redueix_un_n, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reducció segons l'ordre normal
 --redueix_un_n :: LT -> LT
 
 -- redueix_un_a, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reducció segons l'ordre aplicatiu
 --redueix_un_a :: LT -> LT
+redueix_un_a :: LT -> LT
+redueix_un_a (Ap (Ab a t1) t2) = beta_redueix (Ap (Ab a t1) t2)
+redueix_un_a (Ap t1 t2) =
+    let t1' = redueix_un_a t1 in
+        if t1 /= t1' then Ap t1' t2
+        else
+            let t2' = redueix_un_a t2 in
+                if t2 /= t2' then Ap t1 t2'
+                else Ap t1 t2
+redueix_un_a (Ab a t) = Ab a (redueix_un_a t)
+redueix_un_a t = t
+
 
 -- l_normalitza_n, rep un LT, i retorna una llista de LT's que sigui una seqüència de beta-reduccions, segons l'ordre normal
 --l_normalitza_n :: LT -> [LT]
