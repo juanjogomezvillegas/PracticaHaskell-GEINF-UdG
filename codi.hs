@@ -12,9 +12,11 @@ instance Show LT where
     show (Ab a t1) = "(\\" ++ a ++ ". " ++ show t1 ++ ")"
 
 instance Eq LT where
-    (==) (Va _) (Va _) = True
-    (==) (Ap t1 t2) (Ap t1' t2') = (||) ((&&) (t1 == t1') (t2 == t2')) ((&&) (t1 == t2') (t2 == t1'))
-    (==) (Ab _ t1) (Ab _ t1') = t1 == t1'
+    (Va a) == (Va b) = a == b
+    (Ap t1 t2) == (Ap t1' t2') = t1 == t1' && t2 == t2'
+    (Ab _ t1) == (Ab _ t2) = t1 == t2
+    _ == _ = False
+
 
 data LTdB = VadB Int | ApdB LTdB LTdB | AbdB LTdB deriving Eq
 
