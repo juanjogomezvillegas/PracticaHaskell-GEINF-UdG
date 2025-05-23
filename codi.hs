@@ -72,9 +72,19 @@ freeAndboundVarsAux (Va a) freeVars boundVars = if a `elem` boundVars then (free
 freeAndboundVarsAux (Ab a t1) freeVars boundVars = (freeAndboundVarsAux t1 freeVars (a:boundVars))
 freeAndboundVarsAux (Ap t1 t2) freeVars boundVars = (freeAndboundVarsAux t1 freeVars boundVars) `concatTuples` (freeAndboundVarsAux t2 freeVars boundVars)
 
+-- ltPertanyAFreeVar, funció que diu si un LT apareix lliure o lligat (cas de variables) a un altre LT, a partir de la tupla de variables lliures i lligades
+ltPertanyAFreeVar :: LT -> [String] -> Bool
+ltPertanyAFreeVar (Va a) l = a `elem` l
+ltPertanyAFreeVar (Ap t1 t2) l = (&&) (ltPertanyAFreeVar t1 l) (ltPertanyAFreeVar t2 l)
+ltPertanyAFreeVar (Ab _ t1) l = (ltPertanyAFreeVar t1 l)
+
 -- subst, donat un LT i una Substitucio, retorna el mateix LT al que se li ha aplicat la Substitucio
 subst :: LT -> Substitucio -> LT
-subst t s = substAux t s (freeAndboundVars t)
+subst t s = substAuxInt t s (freeAndboundVars t)
+
+--substAuxInt, funció intermèdia on comprovarem que no es produirà cap captura de cap variable lliure, recordem que LES VARIABLES LLIURES NO ESTOQUEN
+substAuxInt :: LT -> Substitucio -> ([String],[String]) -> LT
+substAuxInt t (Sub v m') l = if (ltPertanyAFreeVar m' (fst l)) then t else substAux t (Sub v m') l
 
 -- substAux, el mateix subst però rebent també la tupla amb les llistes de variables lliures i lligades
 substAux :: LT -> Substitucio -> ([String],[String]) -> LT
@@ -92,7 +102,7 @@ esta_normal (Ap t1 t2) = (&&) (esta_normal t1) (esta_normal t2)
 -- beta_redueix, rep un LT que sigui un redex, i el resol
 --beta_redueix :: LT -> LT
 beta_redueix :: LT -> LT
-beta_redueix (Ap (Ab v t1) t2) = substAux t1 (Sub v t2) (freeAndboundVars (Ab v t1))
+beta_redueix (Ap (Ab v t1) t2) = substAuxInt t1 (Sub v t2) (freeAndboundVars (Ab v t1))
 
 -- redueix_un_n, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reducció segons l'ordre normal
 --redueix_un_n :: LT -> LT
