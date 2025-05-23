@@ -114,7 +114,7 @@ redueix_un_a t = t
 
 -- Alguns combinadors i definicions del meta-llenguatge
 iden :: LT
-iden = (Ab "x" (Va "X"))
+iden = (Ab "x" (Va "x"))
 
 true :: LT
 true = (Ab "x" (Ab "y" (Va "x")))
