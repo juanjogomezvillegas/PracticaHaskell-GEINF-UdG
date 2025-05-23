@@ -97,7 +97,7 @@ esta_normal (Ap t1 t2) = (&&) (esta_normal t1) (esta_normal t2)
 
 -- Alguns combinadors i definicions del meta-llenguatge
 iden :: LT
-iden = (Ab "x" (Va "X"))
+iden = (Ab "x" (Va "x"))
 
 true :: LT
 true = (Ab "x" (Ab "y" (Va "x")))
