@@ -22,7 +22,6 @@ instance Eq LT where
     (Ab _ t1) == (Ab _ t2) = t1 == t2
     _ == _ = False
 
-
 -- definició de la gramàtica del lambda càlcul amb notació de bruijn
 data LTdB = VadB Int | ApdB LTdB LTdB | AbdB LTdB
 
@@ -89,9 +88,8 @@ esta_normal (Ap t1 t2) = (&&) (esta_normal t1) (esta_normal t2)
 -- beta_redueix, rep un LT que sigui un redex, i el resol
 --beta_redueix :: LT -> LT
 beta_redueix :: LT -> LT
-beta_redueix (Ap (Ab a t1) t2) = subst t1 (Sub a (show t2))
+beta_redueix (Ap (Ab a t1) t2) = subst t1 (Sub a t2)
 beta_redueix t = t
-
 
 -- redueix_un_n, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reducció segons l'ordre normal
 --redueix_un_n :: LT -> LT
