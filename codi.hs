@@ -15,12 +15,12 @@ instance Show LT where
     show (Ap t1 t2) = "(" ++ show t1 ++ " " ++ show t2 ++ ")"
     show (Ab a t1) = "(\\" ++ a ++ ". " ++ show t1 ++ ")"
 
--- definim la idea d'alpha-equivalència de dos lambda termes
+-- definim la idea d'equivalència de dos lambda termes
 instance Eq LT where
-    (Va a) == (Va b) = a == b
-    (Ap t1 t2) == (Ap t1' t2') = t1 == t1' && t2 == t2'
-    (Ab _ t1) == (Ab _ t2) = t1 == t2
-    _ == _ = False
+    (==) (Va a) (Va b) = a == b
+    (==) (Ap t1 t2) (Ap t1' t2') = (&&) (t1 == t1') (t2 == t2')
+    (==) (Ab _ t1) (Ab _ t2) = t1 == t2
+    (==) _ _ = False
 
 -- definició de la gramàtica del lambda càlcul amb notació de bruijn
 data LTdB = VadB Int | ApdB LTdB LTdB | AbdB LTdB
@@ -31,8 +31,12 @@ instance Show LTdB where
     show (ApdB t1 t2) = "(" ++ show t1 ++ " " ++ show t2 ++ ")"
     show (AbdB t1) = "(\\" ++ ". " ++ show t1 ++ ")"
 
+-- definim la mateixa idea d'equivalència que teníem en els lambda termes pels lambda termes amb notació de Bruijn
 instance Eq LTdB where
-    (==) t1 t2 = t1 == t2
+    (==) (VadB a) (VadB b) = a == b
+    (==) (ApdB t1 t2) (ApdB t1' t2') = (&&) (t1 == t1') (t2 == t2')
+    (==) (AbdB t1) (AbdB t2) = t1 == t2
+    (==) _ _ = False
 
 -- definim una Substitució basant-nos en com es representa segons la teoria: M[v -> M'], és a dir, una operació de substitució d'una variable v per un lambda terme M' sobre un terme M
 -- el terme M no el definim aquí, només definim [v -> M'] com [String -> LT]
@@ -88,8 +92,7 @@ esta_normal (Ap t1 t2) = (&&) (esta_normal t1) (esta_normal t2)
 -- beta_redueix, rep un LT que sigui un redex, i el resol
 --beta_redueix :: LT -> LT
 beta_redueix :: LT -> LT
-beta_redueix (Ap (Ab a t1) t2) = subst t1 (Sub a t2)
-beta_redueix t = t
+beta_redueix (Ap (Ab v t1) t2) = substAux t1 (Sub v t2) (freeAndboundVars (Ab v t1))
 
 -- redueix_un_n, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reducció segons l'ordre normal
 --redueix_un_n :: LT -> LT
@@ -106,8 +109,6 @@ redueix_un_a (Ap t1 t2) =
                 if t2 /= t2' then Ap t1 t2'
                 else Ap t1 t2
 redueix_un_a (Ab a t) = Ab a (redueix_un_a t)
-redueix_un_a t = t
-
 
 -- l_normalitza_n, rep un LT, i retorna una llista de LT's que sigui una seqüència de beta-reduccions, segons l'ordre normal
 --l_normalitza_n :: LT -> [LT]
@@ -127,6 +128,7 @@ redueix_un_a t = t
 -- de_deBruijn :: LTdB -> LT
 
 -- Alguns combinadors i definicions del meta-llenguatge
+
 iden :: LT
 iden = (Ab "x" (Va "x"))
 
@@ -177,6 +179,8 @@ y = (Ab "f" (Ap (Ab "x" (Ap (Va "f") (Ap (Va "x") (Va "x")))) (Ab "x" (Ap (Va "f
 
 t :: LT
 t = (Ap (Ab "x" (Ab "y" (Ap (Va "y") (Ap (Ap (Va "x") (Va "x")) (Va "y"))))) (Ab "x" (Ab "y" (Ap (Va "y") (Ap (Ap (Va "x") (Va "x")) (Va "y"))))))
+
+-- Funció principal
 
 main :: IO ()
 main = do
