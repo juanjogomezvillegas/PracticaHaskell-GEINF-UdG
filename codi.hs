@@ -3,32 +3,48 @@
 
 -- CONTINGUT DE LA PRÀCTICA
 
--- definicions de tipus
+-- Definicions de tipus
+
+-- definició literal de la gramàtica del lambda càlcul
 data LT = Va String | Ap LT LT | Ab String LT
 
+-- fem instància de la classe Show i Eq al tipus de dades LT
+-- definim la forma de mostrar un lambda terme
 instance Show LT where
     show (Va a) = a
     show (Ap t1 t2) = "(" ++ show t1 ++ " " ++ show t2 ++ ")"
     show (Ab a t1) = "(\\" ++ a ++ ". " ++ show t1 ++ ")"
 
+-- definim la idea d'alpha-equivalència de dos lambda termes
 instance Eq LT where
     (==) (Va _) (Va _) = True
     (==) (Ap t1 t2) (Ap t1' t2') = (||) ((&&) (t1 == t1') (t2 == t2')) ((&&) (t1 == t2') (t2 == t1'))
     (==) (Ab _ t1) (Ab _ t1') = t1 == t1'
 
-data LTdB = VadB Int | ApdB LTdB LTdB | AbdB LTdB deriving Eq
+-- definició de la gramàtica del lambda càlcul amb notació de bruijn
+data LTdB = VadB Int | ApdB LTdB LTdB | AbdB LTdB
 
+-- que també serà instància de la classe Show i Eq
 instance Show LTdB where
     show (VadB a) = show a
     show (ApdB t1 t2) = "(" ++ show t1 ++ " " ++ show t2 ++ ")"
     show (AbdB t1) = "(\\" ++ ". " ++ show t1 ++ ")"
 
--- una Substitucio és representa com M[v -> M'], per tant la v valor vell i la M' valor nou són Strings
-data Substitucio = Sub String String
+instance Eq LTdB where
+    (==) t1 t2 = t1 == t2
 
+-- definim una Substitució basant-nos en com es representa segons la teoria: M[v -> M'], és a dir, una operació de substitució d'una variable v per un lambda terme M' sobre un terme M
+-- el terme M no el definim aquí, només definim [v -> M'] com [String -> LT]
+data Substitucio = Sub String LT
+
+-- definim un context per la notació de bruijn
 type Context = String
 
 -- Funcions auxiliars
+
+-- getVar, donat una variable d'un lambda terme retorna la variable com un string
+getVar :: LT -> String
+getVar (Va a) = a
 
 -- eliminarDuplicats, funció que elimina els elements duplicats d'una llista
 eliminarDuplicats :: [String] -> [String]
@@ -53,13 +69,13 @@ freeAndboundVarsAux (Ap t1 t2) freeVars boundVars = (freeAndboundVarsAux t1 free
 
 -- subst, donat un LT i una Substitucio, retorna el mateix LT al que se li ha aplicat la Substitucio
 subst :: LT -> Substitucio -> LT
-subst t v = substAux t v (freeAndboundVars t)
+subst t s = substAux t s (freeAndboundVars t)
 
 -- substAux, el mateix subst però rebent també la tupla amb les llistes de variables lliures i lligades
 substAux :: LT -> Substitucio -> ([String],[String]) -> LT
-substAux (Va a) (Sub v v') l = if a == v && a `elem` (snd l) then (Va v') else (Va a)
-substAux (Ab a t1) (Sub v v') l = if a == v then (Ab v' (substAux t1 (Sub v v') l)) else (Ab a (substAux t1 (Sub v v') l))
-substAux (Ap t1 t2) (Sub v v') l = (Ap (substAux t1 (Sub v v') l) (substAux t2 (Sub v v') l))
+substAux (Va a) (Sub v m') l = if a == v && a `elem` (snd l) then m' else (Va a)
+substAux (Ab a t1) (Sub v m') l = if a == v then (Ab (getVar m') (substAux t1 (Sub v m') l)) else (Ab a (substAux t1 (Sub v m') l))
+substAux (Ap t1 t2) (Sub v m') l = (Ap (substAux t1 (Sub v m') l) (substAux t2 (Sub v m') l))
 
 -- esta_normal, diu si LT ja està en forma normal
 esta_normal :: LT -> Bool
