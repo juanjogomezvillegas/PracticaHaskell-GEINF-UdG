@@ -80,6 +80,7 @@ concatTuples :: ([String],[String]) -> ([String],[String]) -> ([String],[String]
 freeAndboundVars :: LT -> ([String],[String])
 freeAndboundVars t = freeAndboundVarsAux t [] []
 
+-- freeAndboundVarsAux, funció que construeix una tupla amb dues llistes que continguin les variables lliures (first) i lligades (second)
 freeAndboundVarsAux :: LT -> [String] -> [String] -> ([String],[String])
 freeAndboundVarsAux (Va a) freeVars boundVars = if a `elem` boundVars then (freeVars,boundVars) else (a:freeVars,boundVars)
 freeAndboundVarsAux (Ab a t1) freeVars boundVars = (freeAndboundVarsAux t1 freeVars (a:boundVars))
@@ -113,7 +114,6 @@ esta_normal (Ab _ t1) = (esta_normal t1)
 esta_normal (Ap t1 t2) = (&&) (esta_normal t1) (esta_normal t2)
 
 -- beta_redueix, rep un LT que sigui un redex, i el resol
---beta_redueix :: LT -> LT
 beta_redueix :: LT -> LT
 beta_redueix (Ap (Ab v t1) t2) = substAuxInt t1 (Sub v t2) (freeAndboundVars (Ab v t1))
 
@@ -122,7 +122,6 @@ redueix_un_n :: LT -> LT
 redueix_un_n (Ap (Ab v t) t') = beta_redueix (Ap (Ab v t) t')
 
 -- redueix_un_a, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reducció segons l'ordre aplicatiu
---redueix_un_a :: LT -> LT
 redueix_un_a :: LT -> LT
 redueix_un_a (Ap (Ab a t1) t2) = beta_redueix (Ap (Ab a t1) t2)
 redueix_un_a (Ap t1 t2) =

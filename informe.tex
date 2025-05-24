@@ -7,8 +7,15 @@
 \usepackage[x11names]{xcolor}
 \usepackage{fancyhdr}
 \usepackage[margin=2cm]{geometry}
+\usepackage{listings}
 \graphicspath{{./imatges/}}% Lloc on hi ha els logos
 
+\lstset{
+    commentstyle=\color{green}, % Color dels comentaris
+    keywordstyle=\color{blue},   % Color de les paraules clau
+    stringstyle=\color{cyan},     % Color de les cadenes
+    basicstyle=\ttfamily,        % Estil bàsic del text
+}
 
 \lhead{Informe de la pràctica de Haskell}
 \rhead{\thepage}
@@ -47,11 +54,157 @@
         \end{minipage}
     \end{titlepage}
 
-
 \tableofcontents
 
 \clearpage
 
-\section{Continguts}
+\section{$\lambda$-càlcul clàssic}
+
+\subsection{Tipus}
+
+El tipus de dades \textbf{LT} ens permet representar $\lambda$-termes, i la definició és exactament la gramàtica que diu el que és un $\lambda$-terme.
+
+\begin{lstlisting}[language=Haskell]
+data LT = Va String | Ap LT LT | Ab String LT
+
+-- definim la forma de mostrar un lambda terme
+instance Show LT where
+    show (Va a) = a
+    show (Ap t1 t2) = "(" ++ show t1 ++ " " ++ show t2 ++ ")"
+    show (Ab a t1) = "(\\" ++ a ++ ". " ++ show t1 ++ ")"
+
+-- definim la idea d'equivalencia de dos lambda termes
+instance Eq LT where
+    (==) (Va a) (Va b) = a == b
+    (==) (Ap t1 t2) (Ap t1' t2') = (&&) (t1 == t1') (t2 == t2')
+    (==) (Ab _ t1) (Ab _ t2) = t1 == t2
+    (==) _ _ = False
+\end{lstlisting}
+
+En el codi també es veu com hem fet per tal que el \textbf{tipus LT} sigui una instància de les classes \textbf{Show} i \textbf{Eq}, definint així com es mostraran els $\lambda$-termes, i que vol dir que dos $\lambda$-termes siguin equivalents. \\
+
+També hem definit el tipus de dades \textbf{Substitució}, que ens ha permet implementar la funció substitució tal i com diu la teòria, és a dir, com un operador que ens permet reemplaçar ocurrències de variables per termes, evitant captura de variables lliures. Per tant, el tipus \textbf{Substitució} serà una variable $v$ per un terme $M'$, i la funció \textbf{subst} una \textbf{Substitució} sobre un terme $M$, tot junt representarà: $M [v -> M']$.
+
+\begin{lstlisting}[language=Haskell]
+data Substitucio = Sub String LT
+\end{lstlisting}
+
+\subsection{Funcions auxiliars}
+
+\subsection{Funcions principals}
+
+\begin{lstlisting}[language=Haskell]
+-- freeAndboundVars, donat un LT retorna una tupla amb una llista de freeVars i una llista de boundVars
+freeAndboundVars :: LT -> ([String],[String])
+freeAndboundVars t = freeAndboundVarsAux t [] []
+
+-- freeAndboundVarsAux, funcio que construeix una tupla amb dues llistes que continguin les variables lliures (first) i lligades (second)
+freeAndboundVarsAux :: LT -> [String] -> [String] -> ([String],[String])
+freeAndboundVarsAux (Va a) freeVars boundVars = if a `elem` boundVars then (freeVars,boundVars) else (a:freeVars,boundVars)
+freeAndboundVarsAux (Ab a t1) freeVars boundVars = (freeAndboundVarsAux t1 freeVars (a:boundVars))
+freeAndboundVarsAux (Ap t1 t2) freeVars boundVars = (freeAndboundVarsAux t1 freeVars boundVars) `concatTuples` (freeAndboundVarsAux t2 freeVars boundVars)
+\end{lstlisting}
+
+
+
+\begin{lstlisting}[language=Haskell]
+-- subst, donat un LT i una Substitucio, retorna el mateix LT al que se li ha aplicat la Substitucio
+subst :: LT -> Substitucio -> LT
+subst t s = substAuxInt t s (freeAndboundVars t)
+
+--substAuxInt, funcio intermedia on comprovarem que no es produira cap captura de cap variable lliure
+substAuxInt :: LT -> Substitucio -> ([String],[String]) -> LT
+substAuxInt t (Sub v t') l = if (ltPertanyA t' (fst l)) || (ltPertanyA t' (snd l)) then t else substAux t (Sub v t') l
+
+-- substAux, el mateix subst pero rebent tambe la tupla amb les llistes de variables lliures i lligades
+substAux :: LT -> Substitucio -> ([String],[String]) -> LT
+substAux (Va a) (Sub v t') l = if a == v && a `elem` (snd l) then t' else (Va a)
+substAux (Ab a t1) (Sub v t') l = if a == v then (Ab (getVar t') (substAux t1 (Sub v t') l)) else (Ab a (substAux t1 (Sub v t') l))
+substAux (Ap t1 t2) (Sub v t') l = (Ap (substAux t1 (Sub v t') l) (substAux t2 (Sub v t') l))
+\end{lstlisting}
+
+
+
+\begin{lstlisting}[language=Haskell]
+-- esta_normal, diu si LT ja esta en forma normal
+esta_normal :: LT -> Bool
+esta_normal (Va a) = True
+esta_normal (Ap (Ab _ _) _) = False
+esta_normal (Ab _ t1) = (esta_normal t1)
+esta_normal (Ap t1 t2) = (&&) (esta_normal t1) (esta_normal t2)
+\end{lstlisting}
+
+
+
+\begin{lstlisting}[language=Haskell]
+-- beta_redueix, rep un LT que sigui un redex, i el resol
+beta_redueix :: LT -> LT
+beta_redueix (Ap (Ab v t1) t2) = substAuxInt t1 (Sub v t2) (freeAndboundVars (Ab v t1))
+\end{lstlisting}
+
+
+
+\begin{lstlisting}[language=Haskell]
+-- redueix_un_n, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reduccio segons l'ordre normal
+redueix_un_n :: LT -> LT
+\end{lstlisting}
+
+
+
+\begin{lstlisting}[language=Haskell]
+-- redueix_un_a, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reduccio segons l'ordre aplicatiu
+redueix_un_a :: LT -> LT
+\end{lstlisting}
+
+
+
+\begin{lstlisting}[language=Haskell]
+-- l_normalitza_n, rep un LT, i retorna una llista de LT's que sigui una sequencia de beta-reduccions, segons l'ordre normal
+l_normalitza_n :: LT -> [LT]
+\end{lstlisting}
+
+
+
+\begin{lstlisting}[language=Haskell]
+-- l_normalitza_a, rep un LT, i retorna una llista de LT's que sigui una sequencia de beta-reduccions, segons l'ordre aplicatiu
+l_normalitza_a :: LT -> [LT]
+\end{lstlisting}
+
+
+
+\begin{lstlisting}[language=Haskell]
+-- normalitza_n, rep un LT, i retorna una tupla amb el nombre de passos, mes el LT en forma normal, seguint l'ordre normal
+normalitza_n :: LT -> (Int,LT)
+\end{lstlisting}
+
+
+
+\begin{lstlisting}[language=Haskell]
+-- normalitza_a, rep un LT, i retorna una tupla amb el nombre de passos, mes el LT en forma normal, seguint l'ordre aplicatiu
+normalitza_a :: LT -> (Int,LT)
+\end{lstlisting}
+
+
+
+\section{Extra: Notació \textit{de Bruijn}}
+
+Per \textbf{la notació de Bruijn} hem definit un altre tipus de dades, que tambe es instancia de les classes \textbf{Show} i \textbf{Eq}.
+
+\begin{lstlisting}[language=Haskell]
+data LTdB = VadB Int | ApdB LTdB LTdB | AbdB LTdB
+
+-- que tambe sera instancia de la classe Show i Eq
+instance Show LTdB where
+    show (VadB a) = show a
+    show (ApdB t1 t2) = "(" ++ show t1 ++ " " ++ show t2 ++ ")"
+    show (AbdB t1) = "(\\" ++ ". " ++ show t1 ++ ")"
+
+-- definim la mateixa idea d'equivalencia que teniem en els lambda termes pels lambda termes amb notacio de Bruijn
+instance Eq LTdB where
+    (==) (VadB a) (VadB b) = a == b
+    (==) (ApdB t1 t2) (ApdB t1' t2') = (&&) (t1 == t1') (t2 == t2')
+    (==) (AbdB t1) (AbdB t2) = t1 == t2
+    (==) _ _ = False
+\end{lstlisting}
 
 \end{document}
