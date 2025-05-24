@@ -47,9 +47,22 @@ type Context = String
 
 -- Funcions auxiliars
 
+-- funcions esVar, esAplicacio, esAbstraccio, serveixen per saber si de quin tipus és un LT concret
+esVar :: LT -> Bool
+esVar (Va _) = True
+esVar _ = False
+esAplicacio :: LT -> Bool
+esAplicacio (Ap _ _) = True
+esAplicacio _ = False
+esAbstraccio :: LT -> Bool
+esAbstraccio (Ab _ _) = True
+esAbstraccio _ = False
+
 -- getVar, donat una variable d'un lambda terme retorna la variable com un string
 getVar :: LT -> String
 getVar (Va a) = a
+getVar (Ab a _) = a
+getVar (Ap t1 _) = (getVar t1)
 
 -- eliminarDuplicats, funció que elimina els elements duplicats d'una llista
 eliminarDuplicats :: [String] -> [String]
@@ -72,11 +85,11 @@ freeAndboundVarsAux (Va a) freeVars boundVars = if a `elem` boundVars then (free
 freeAndboundVarsAux (Ab a t1) freeVars boundVars = (freeAndboundVarsAux t1 freeVars (a:boundVars))
 freeAndboundVarsAux (Ap t1 t2) freeVars boundVars = (freeAndboundVarsAux t1 freeVars boundVars) `concatTuples` (freeAndboundVarsAux t2 freeVars boundVars)
 
--- ltPertanyAFreeVar, funció que diu si un LT apareix lliure o lligat (cas de variables) a un altre LT, a partir de la tupla de variables lliures i lligades
-ltPertanyAFreeVar :: LT -> [String] -> Bool
-ltPertanyAFreeVar (Va a) l = a `elem` l
-ltPertanyAFreeVar (Ap t1 t2) l = (&&) (ltPertanyAFreeVar t1 l) (ltPertanyAFreeVar t2 l)
-ltPertanyAFreeVar (Ab _ t1) l = (ltPertanyAFreeVar t1 l)
+-- ltPertanyA, funció que diu si un LT conté variables presents en una llista
+ltPertanyA :: LT -> [String] -> Bool
+ltPertanyA (Va a) l = a `elem` l
+ltPertanyA (Ab _ t1) l = (ltPertanyA t1 l)
+ltPertanyA (Ap t1 t2) l = (&&) (ltPertanyA t1 l) (ltPertanyA t2 l)
 
 -- subst, donat un LT i una Substitucio, retorna el mateix LT al que se li ha aplicat la Substitucio
 subst :: LT -> Substitucio -> LT
@@ -84,13 +97,13 @@ subst t s = substAuxInt t s (freeAndboundVars t)
 
 --substAuxInt, funció intermèdia on comprovarem que no es produirà cap captura de cap variable lliure, recordem que LES VARIABLES LLIURES NO ESTOQUEN
 substAuxInt :: LT -> Substitucio -> ([String],[String]) -> LT
-substAuxInt t (Sub v m') l = if (ltPertanyAFreeVar m' (fst l)) then t else substAux t (Sub v m') l
+substAuxInt t (Sub v t') l = if (ltPertanyA t' (fst l)) || (ltPertanyA t' (snd l)) then t else substAux t (Sub v t') l
 
 -- substAux, el mateix subst però rebent també la tupla amb les llistes de variables lliures i lligades
 substAux :: LT -> Substitucio -> ([String],[String]) -> LT
-substAux (Va a) (Sub v m') l = if a == v && a `elem` (snd l) then m' else (Va a)
-substAux (Ab a t1) (Sub v m') l = if a == v then (Ab (getVar m') (substAux t1 (Sub v m') l)) else (Ab a (substAux t1 (Sub v m') l))
-substAux (Ap t1 t2) (Sub v m') l = (Ap (substAux t1 (Sub v m') l) (substAux t2 (Sub v m') l))
+substAux (Va a) (Sub v t') l = if a == v && a `elem` (snd l) then t' else (Va a)
+substAux (Ab a t1) (Sub v t') l = if a == v then (Ab (getVar t') (substAux t1 (Sub v t') l)) else (Ab a (substAux t1 (Sub v t') l))
+substAux (Ap t1 t2) (Sub v t') l = (Ap (substAux t1 (Sub v t') l) (substAux t2 (Sub v t') l))
 
 -- esta_normal, diu si LT ja està en forma normal
 esta_normal :: LT -> Bool
@@ -148,14 +161,14 @@ true = (Ab "x" (Ab "y" (Va "x")))
 false :: LT
 false = (Ab "x" (Ab "y" (Va "y")))
 
-not :: LT
-not = (Ab "t" (Ap false true))
+notDef :: LT
+notDef = (Ab "t" (Ap false true))
 
 cond :: LT -> LT -> LT -> LT
 cond e e1 e2 = (Ap (Ap e e1) e2)
 
-and :: LT
-and = (Ab "x" (Ab "y" (cond (Va "x") (Va "y") false)))
+andDef :: LT
+andDef = (Ab "x" (Ab "y" (cond (Va "x") (Va "y") false)))
 
 tupla :: LT
 tupla = (Ab "x" (Ab "y" (Ab "p" (Ap (Ap (Va "p") (Va "x")) (Va "y")))))
