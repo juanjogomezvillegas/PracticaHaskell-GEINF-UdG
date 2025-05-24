@@ -118,7 +118,8 @@ beta_redueix :: LT -> LT
 beta_redueix (Ap (Ab v t1) t2) = substAuxInt t1 (Sub v t2) (freeAndboundVars (Ab v t1))
 
 -- redueix_un_n, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reducció segons l'ordre normal
---redueix_un_n :: LT -> LT
+redueix_un_n :: LT -> LT
+redueix_un_n (Ap (Ab v t) t') = beta_redueix (Ap (Ab v t) t')
 
 -- redueix_un_a, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reducció segons l'ordre aplicatiu
 --redueix_un_a :: LT -> LT
