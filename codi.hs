@@ -47,17 +47,6 @@ type Context = String
 
 -- Funcions auxiliars
 
--- funcions esVar, esAplicacio, esAbstraccio, serveixen per saber si de quin tipus és un LT concret
-esVar :: LT -> Bool
-esVar (Va _) = True
-esVar _ = False
-esAplicacio :: LT -> Bool
-esAplicacio (Ap _ _) = True
-esAplicacio _ = False
-esAbstraccio :: LT -> Bool
-esAbstraccio (Ab _ _) = True
-esAbstraccio _ = False
-
 -- getVar, donat una variable d'un lambda terme retorna la variable com un string
 getVar :: LT -> String
 getVar (Va a) = a
@@ -65,14 +54,25 @@ getVar (Ab a _) = a
 getVar (Ap t1 _) = (getVar t1)
 
 -- eliminarDuplicats, funció que elimina els elements duplicats d'una llista
-eliminarDuplicats :: [String] -> [String]
-eliminarDuplicats = foldr cond []
-    where cond x l | x `elem` l = l
-                   | otherwise = x:l
+eliminarDuplicats :: Eq a => [a] -> [a]
+eliminarDuplicats = foldr (\x xs -> if x `elem` xs then xs else x:xs) []
 
 -- concatTuples, operador que concatena o intercalar dues llistes que són a dins d'una tupla
-concatTuples :: ([String],[String]) -> ([String],[String]) -> ([String],[String])
-(a,b) `concatTuples` (c,d) = (eliminarDuplicats (a ++ c),eliminarDuplicats (b ++ d)) 
+concatTuples :: Eq a => ([a],[a]) -> ([a],[a]) -> ([a],[a])
+concatTuples t1 t2 = (eliminarDuplicats (fst t1 ++ fst t2),eliminarDuplicats (snd t1 ++ snd t2))
+
+-- freeAndboundVarsAux, funció que construeix una tupla amb dues llistes que continguin les variables lliures (first) i lligades (second)
+freeAndboundVarsAux :: Eq a => LT -> [a] -> [a] -> ([a],[a])
+freeAndboundVarsAux (Va a) freeVars boundVars | a `elem` boundVars = (freeVars,boundVars)
+                                              | otherwise = (a:freeVars,boundVars)
+freeAndboundVarsAux (Ab a t1) freeVars boundVars = (freeAndboundVarsAux t1 freeVars (a:boundVars))
+freeAndboundVarsAux (Ap t1 t2) freeVars boundVars = (freeAndboundVarsAux t1 freeVars boundVars) `concatTuples` (freeAndboundVarsAux t2 freeVars boundVars)
+
+-- ltPertanyA, funció que diu si un LT conté variables presents en una llista
+ltPertanyA :: Eq a => LT -> [a] -> Bool
+ltPertanyA (Va a) l = a `elem` l
+ltPertanyA (Ab _ t1) l = (ltPertanyA t1 l)
+ltPertanyA (Ap t1 t2) l = (&&) (ltPertanyA t1 l) (ltPertanyA t2 l)
 
 -- Funcions principals
 
@@ -80,31 +80,13 @@ concatTuples :: ([String],[String]) -> ([String],[String]) -> ([String],[String]
 freeAndboundVars :: LT -> ([String],[String])
 freeAndboundVars t = freeAndboundVarsAux t [] []
 
--- freeAndboundVarsAux, funció que construeix una tupla amb dues llistes que continguin les variables lliures (first) i lligades (second)
-freeAndboundVarsAux :: LT -> [String] -> [String] -> ([String],[String])
-freeAndboundVarsAux (Va a) freeVars boundVars = if a `elem` boundVars then (freeVars,boundVars) else (a:freeVars,boundVars)
-freeAndboundVarsAux (Ab a t1) freeVars boundVars = (freeAndboundVarsAux t1 freeVars (a:boundVars))
-freeAndboundVarsAux (Ap t1 t2) freeVars boundVars = (freeAndboundVarsAux t1 freeVars boundVars) `concatTuples` (freeAndboundVarsAux t2 freeVars boundVars)
-
--- ltPertanyA, funció que diu si un LT conté variables presents en una llista
-ltPertanyA :: LT -> [String] -> Bool
-ltPertanyA (Va a) l = a `elem` l
-ltPertanyA (Ab _ t1) l = (ltPertanyA t1 l)
-ltPertanyA (Ap t1 t2) l = (&&) (ltPertanyA t1 l) (ltPertanyA t2 l)
-
 -- subst, donat un LT i una Substitucio, retorna el mateix LT al que se li ha aplicat la Substitucio
 subst :: LT -> Substitucio -> LT
-subst t s = substAuxInt t s (freeAndboundVars t)
-
---substAuxInt, funció intermèdia on comprovarem que no es produirà cap captura de cap variable lliure, recordem que LES VARIABLES LLIURES NO ESTOQUEN
-substAuxInt :: LT -> Substitucio -> ([String],[String]) -> LT
-substAuxInt t (Sub v t') l = if (ltPertanyA t' (fst l)) || (ltPertanyA t' (snd l)) then t else substAux t (Sub v t') l
-
--- substAux, el mateix subst però rebent també la tupla amb les llistes de variables lliures i lligades
-substAux :: LT -> Substitucio -> ([String],[String]) -> LT
-substAux (Va a) (Sub v t') l = if a == v && a `elem` (snd l) then t' else (Va a)
-substAux (Ab a t1) (Sub v t') l = if a == v then (Ab (getVar t') (substAux t1 (Sub v t') l)) else (Ab a (substAux t1 (Sub v t') l))
-substAux (Ap t1 t2) (Sub v t') l = (Ap (substAux t1 (Sub v t') l) (substAux t2 (Sub v t') l))
+subst (Va a) (Sub v t') | a == v = t'
+                        | otherwise = (Va a)
+subst (Ap t1 t2) (Sub v t') = (Ap (subst t1 (Sub v t')) (subst t2 (Sub v t')))
+subst (Ab a t1) (Sub v t') | [x |x <- (fst (freeAndboundVars t')), y <- (snd (freeAndboundVars (Ab a t1))), x == y] == [] = if a == v then (Ab (getVar t') (subst t1 (Sub v t'))) else (Ab a (subst t1 (Sub v t')))
+                           | otherwise = (Ab a t1)
 
 -- esta_normal, diu si LT ja està en forma normal
 esta_normal :: LT -> Bool
@@ -115,7 +97,7 @@ esta_normal (Ap t1 t2) = (&&) (esta_normal t1) (esta_normal t2)
 
 -- beta_redueix, rep un LT que sigui un redex, i el resol
 beta_redueix :: LT -> LT
-beta_redueix (Ap (Ab v t1) t2) = substAuxInt t1 (Sub v t2) (freeAndboundVars (Ab v t1))
+beta_redueix (Ap (Ab v t1) t2) = subst t1 (Sub v t2)
 
 -- redueix_un_n, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reducció segons l'ordre normal
 redueix_un_n :: LT -> LT
