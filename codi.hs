@@ -135,6 +135,13 @@ l_normalitza_n (Ap m n) = redueix_un_n (Ap m n) -- en desenvolupament
 
 -- l_normalitza_a, rep un LT, i retorna una llista de LT's que sigui una seqüència de beta-reduccions, segons l'ordre aplicatiu
 --l_normalitza_a :: LT -> [LT]
+l_normalitza_a :: LT -> [LT]
+l_normalitza_a t =
+    let t' = redueix_un_a t in
+        if t == t'
+           then [t]
+           else t : l_normalitza_a t'
+
 
 -- normalitza_n, rep un LT, i retorna una tupla amb el nombre de passos, més el LT en forma normal, seguint l'ordre normal
 normalitza_n :: LT -> (Int,LT)
