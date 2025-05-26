@@ -62,14 +62,14 @@ concatTuples :: Eq a => ([a],[a]) -> ([a],[a]) -> ([a],[a])
 concatTuples t1 t2 = (eliminarDuplicats (fst t1 ++ fst t2),eliminarDuplicats (snd t1 ++ snd t2))
 
 -- freeAndboundVarsAux, funció que construeix una tupla amb dues llistes que continguin les variables lliures (first) i lligades (second)
-freeAndboundVarsAux :: Eq a => LT -> [a] -> [a] -> ([a],[a])
+freeAndboundVarsAux :: LT -> [String] -> [String] -> ([String],[String])
 freeAndboundVarsAux (Va a) freeVars boundVars | a `elem` boundVars = (freeVars,boundVars)
                                               | otherwise = (a:freeVars,boundVars)
 freeAndboundVarsAux (Ab a t1) freeVars boundVars = (freeAndboundVarsAux t1 freeVars (a:boundVars))
 freeAndboundVarsAux (Ap t1 t2) freeVars boundVars = (freeAndboundVarsAux t1 freeVars boundVars) `concatTuples` (freeAndboundVarsAux t2 freeVars boundVars)
 
 -- ltPertanyA, funció que diu si un LT conté variables presents en una llista
-ltPertanyA :: Eq a => LT -> [a] -> Bool
+ltPertanyA :: LT -> [String] -> Bool
 ltPertanyA (Va a) l = a `elem` l
 ltPertanyA (Ab _ t1) l = (ltPertanyA t1 l)
 ltPertanyA (Ap t1 t2) l = (&&) (ltPertanyA t1 l) (ltPertanyA t2 l)
