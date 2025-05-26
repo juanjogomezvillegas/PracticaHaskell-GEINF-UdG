@@ -106,7 +106,10 @@ beta_redueix (Ap (Ab v t1) t2) = subst t1 (Sub v t2)
 
 -- redueix_un_n, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reducció segons l'ordre normal
 redueix_un_n :: LT -> LT
-redueix_un_n (Ap (Ab v t) t') = beta_redueix (Ap (Ab v t) t')
+redueix_un_n (Ap m n) | esRedex (Ap m n) = beta_redueix (Ap m n)
+                      | esRedex m = redueix_un_n m
+                      | esRedex n = redueix_un_n n
+                      | otherwise = (Ap m n)
 
 -- redueix_un_a, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reducció segons l'ordre aplicatiu
 redueix_un_a :: LT -> LT
@@ -121,13 +124,15 @@ redueix_un_a (Ap t1 t2) =
 redueix_un_a (Ab a t) = Ab a (redueix_un_a t)
 
 -- l_normalitza_n, rep un LT, i retorna una llista de LT's que sigui una seqüència de beta-reduccions, segons l'ordre normal
---l_normalitza_n :: LT -> [LT]
+l_normalitza_n :: LT -> [LT]
+l_normalitza_n (Ap m n) = redueix_un_n (Ap m n) -- en desenvolupament
 
 -- l_normalitza_a, rep un LT, i retorna una llista de LT's que sigui una seqüència de beta-reduccions, segons l'ordre aplicatiu
 --l_normalitza_a :: LT -> [LT]
 
 -- normalitza_n, rep un LT, i retorna una tupla amb el nombre de passos, més el LT en forma normal, seguint l'ordre normal
---normalitza_n :: LT -> (Int,LT)
+normalitza_n :: LT -> (Int,LT)
+normalitza_n (Ap m n) = redueix_un_n (Ap m n) -- en desenvolupament
 
 -- normalitza_a, rep un LT, i retorna una tupla amb el nombre de passos, més el LT en forma normal, seguint l'ordre aplicatiu
 --normalitza_a :: LT -> (Int,LT)
