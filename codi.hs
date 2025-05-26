@@ -52,6 +52,14 @@ esRedex :: LT -> Bool
 esRedex (Ap (Ab _ _) _) = True
 esRedex _ = False
 
+-- Determina si un terme conté qualsevol redex (en qualsevol nivell, equivalent a fer esRedex sobre tot el terme)
+conteRedex :: LT -> Bool
+conteRedex t
+    | esRedex t       = True
+conteRedex (Ap m n)  = conteRedex m || conteRedex n
+conteRedex (Ab _ t)  = conteRedex t
+conteRedex _         = False
+
 -- getVar, donat una variable d'un lambda terme retorna la variable com un string
 getVar :: LT -> String
 getVar (Va a) = a
@@ -113,15 +121,13 @@ redueix_un_n (Ap m n) | esRedex (Ap m n) = beta_redueix (Ap m n)
 
 -- redueix_un_a, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reducció segons l'ordre aplicatiu
 redueix_un_a :: LT -> LT
-redueix_un_a (Ap (Ab a t1) t2) = beta_redueix (Ap (Ab a t1) t2)
-redueix_un_a (Ap t1 t2) =
-    let t1' = redueix_un_a t1 in
-        if t1 /= t1' then Ap t1' t2
-        else
-            let t2' = redueix_un_a t2 in
-                if t2 /= t2' then Ap t1 t2'
-                else Ap t1 t2
-redueix_un_a (Ab a t) = Ab a (redueix_un_a t)
+redueix_un_a (Ap m n)
+    | conteRedex  m = Ap (redueix_un_a m) n
+    | conteRedex  n = Ap m (redueix_un_a n)
+    | conteRedex  (Ap m n) = beta_redueix (Ap m n)
+    | otherwise = Ap m n
+redueix_un_a (Ab x t) = Ab x (redueix_un_a t)
+redueix_un_a t = t
 
 -- l_normalitza_n, rep un LT, i retorna una llista de LT's que sigui una seqüència de beta-reduccions, segons l'ordre normal
 l_normalitza_n :: LT -> [LT]
