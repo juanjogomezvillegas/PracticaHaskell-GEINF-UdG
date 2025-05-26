@@ -47,6 +47,11 @@ type Context = String
 
 -- Funcions auxiliars
 
+-- esRedex, funció que donat un LT, retorna True si es un redex, False altrament
+esRedex :: LT -> Bool
+esRedex (Ap (Ab _ _) _) = True
+esRedex _ = False
+
 -- getVar, donat una variable d'un lambda terme retorna la variable com un string
 getVar :: LT -> String
 getVar (Va a) = a
@@ -161,8 +166,8 @@ first = (Ab "x" (Ap (Va "x") true))
 second :: LT
 second = (Ab "x" (Ap (Va "x") false))
 
-succ :: LT
-succ = (Ab "n" (Ab "f" (Ab "x" (Ap ((Ap (Va "n") (Va "f"))) ((Ap (Va "f") (Va "x")))))))
+succDef :: LT
+succDef = (Ab "n" (Ab "f" (Ab "x" (Ap ((Ap (Va "n") (Va "f"))) ((Ap (Va "f") (Va "x")))))))
 
 prefn :: LT
 prefn = (Ab "f" (Ab "p" (Ab "p" (Ap (Ap (Va "p") false) (cond (Ap first (Va "p")) (Ap second (Va "p")) (Ap (Va "f") (Ap second (Va "p"))))))))
