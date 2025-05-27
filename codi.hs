@@ -151,18 +151,25 @@ l_normalitza_a t | esta_normal t = t:[]
     where t' = redueix_un_a t
 
 -- normalitza_n, rep un LT, i retorna una tupla amb el nombre de passos, més el LT en forma normal, seguint l'ordre normal
-normalitza_n :: LT -> (Int,LT)
-normalitza_n = normalitza_n_aux 0
-
--- normalitza_n_aux, funció auxiliar cridada per normalitza_n
-normalitza_n_aux :: Int -> LT -> (Int,LT)
-normalitza_n_aux n t | esta_normal t = (n,t)
-                     | otherwise = (n+1,snd (normalitza_n_aux (n+1) t'))
-    where t' = redueix_un_n t
+normalitza_n :: LT -> (Int, LT)
+normalitza_n t =
+    let seq  = l_normalitza_n t
+        passos = llargada seq
+        forma  = last seq
+    in (passos, forma)
 
 -- normalitza_a, rep un LT, i retorna una tupla amb el nombre de passos, més el LT en forma normal, seguint l'ordre aplicatiu
---normalitza_a :: LT -> (Int,LT)
+normalitza_a :: LT -> (Int, LT)
+normalitza_a t =
+    let seq  = l_normalitza_a t
+        passos = llargada seq
+        forma  = last seq
+    in (passos, forma)
 
+-- llargada, funció que retorna la llargada d'una llista
+llargada :: [a] -> Int
+llargada [] = 0
+llargada (_:xs) = 1 + llargada xs
 
 -- a_deBruijn :: LT -> Context -> LTdB
 
