@@ -81,6 +81,10 @@ eliminar_duplicats = foldr (\x xs -> if x `elem` xs then xs else x:xs) []
 concat_tuples :: Eq a => ([a],[a]) -> ([a],[a]) -> ([a],[a])
 concat_tuples t1 t2 = (eliminar_duplicats (fst t1 ++ fst t2),eliminar_duplicats (snd t1 ++ snd t2))
 
+-- llargada, funció que retorna la llargada d'una llista
+llargada :: [a] -> Int
+llargada = foldr (\_ y -> 1+y) 0
+
 -- freeAndboundVarsAux, funció que construeix una tupla amb dues llistes que continguin les variables lliures (first) i lligades (second)
 freeAndboundVarsAux :: [String] -> [String] -> LT -> ([String],[String])
 freeAndboundVarsAux freeVars boundVars (Va a) | a `elem` boundVars = (freeVars,boundVars)
@@ -146,28 +150,21 @@ l_normalitza_a t | esta_normal t = t:[]
 
 -- normalitza_n, rep un LT, i retorna una tupla amb el nombre de passos, més el LT en forma normal, seguint l'ordre normal
 normalitza_n :: LT -> (Int, LT)
-normalitza_n t =
-    let seq  = l_normalitza_n t
-        passos = llargada seq
-        forma  = last seq
-    in (passos, forma)
+normalitza_n t = (llargada (lpassos t),last (lpassos t))
+    where lpassos = l_normalitza_n
 
 -- normalitza_a, rep un LT, i retorna una tupla amb el nombre de passos, més el LT en forma normal, seguint l'ordre aplicatiu
 normalitza_a :: LT -> (Int, LT)
-normalitza_a t =
-    let seq  = l_normalitza_a t
-        passos = llargada seq
-        forma  = last seq
-    in (passos, forma)
+normalitza_a t = (llargada (lpassos t),last (lpassos t))
+    where lpassos = l_normalitza_a
 
--- llargada, funció que retorna la llargada d'una llista
-llargada :: [a] -> Int
-llargada [] = 0
-llargada (_:xs) = 1 + llargada xs
+-- Extra: Notació de Bruijn
 
--- a_deBruijn :: LT -> Context -> LTdB
+-- a_deBruijn, funció que rep un LT i un Context, i el passa a LTdB
+--a_deBruijn :: LT -> Context -> LTdB
 
--- de_deBruijn :: LTdB -> LT
+-- de_deBruijn, funció que rep un LTdB i el passa a LT
+--de_deBruijn :: LTdB -> LT
 
 -- Alguns combinadors i definicions del meta-llenguatge
 
