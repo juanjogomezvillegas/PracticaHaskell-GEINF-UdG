@@ -188,6 +188,12 @@ cond e e1 e2 = Ap (Ap e e1) e2
 andDef :: LT
 andDef = Ab "x" (Ab "y" (cond (Va "x") (Va "y") false))
 
+orDef :: LT
+orDef = Ab "x" (Ab "y" (cond (Va "x") true (Va "y")))
+
+xorDef :: LT
+xorDef = Ab "x" (Ab "y" (cond (Va "x") (Ap notDef (Va "y")) (Va "y")))
+
 tupla :: LT
 tupla = Ab "x" (Ab "y" (Ab "p" (Ap (Ap (Va "p") (Va "x")) (Va "y"))))
 
