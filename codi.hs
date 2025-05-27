@@ -113,11 +113,12 @@ esta_normal = not . conte_redex
 -- beta_redueix, rep un LT que sigui un redex, i el resol
 beta_redueix :: LT -> LT
 beta_redueix (Ap (Ab a t1) t2) = subst t1 (Sub a t2)
+beta_redueix (Ab _ t) = beta_redueix t
 beta_redueix t = t
 
 -- redueix_un_n, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reducció segons l'ordre normal
 redueix_un_n :: LT -> LT
-redueix_un_n (Ap m n) | conte_redex (Ap m n) = beta_redueix (Ap m n)
+redueix_un_n (Ap m n) | es_redex (Ap m n) = beta_redueix (Ap m n)
                       | conte_redex m = Ap (redueix_un_n m) n
                       | conte_redex n = Ap m (redueix_un_n n)
                       | otherwise = Ap m n
@@ -127,25 +128,31 @@ redueix_un_n (Ab x t) = Ab x (redueix_un_n t)
 redueix_un_a :: LT -> LT
 redueix_un_a (Ap m n) | conte_redex m = Ap (redueix_un_a m) n
                       | conte_redex n = Ap m (redueix_un_a n)
-                      | conte_redex (Ap m n) = beta_redueix (Ap m n)
+                      | es_redex (Ap m n) = beta_redueix (Ap m n)
                       | otherwise = Ap m n
 redueix_un_a (Ab x t) = Ab x (redueix_un_a t)
 
 -- l_normalitza_n, rep un LT, i retorna una llista de LT's que sigui una seqüència de beta-reduccions, segons l'ordre normal
---l_normalitza_n :: LT -> [LT]
---l_normalitza_n (Ap m n) = redueix_un_n (Ap m n) -- en desenvolupament
+l_normalitza_n :: LT -> [LT]
+l_normalitza_n t | esta_normal t = t:[]
+                 | otherwise = t:l_normalitza_n t'
+    where t' = redueix_un_n t
 
 -- l_normalitza_a, rep un LT, i retorna una llista de LT's que sigui una seqüència de beta-reduccions, segons l'ordre aplicatiu
 l_normalitza_a :: LT -> [LT]
-l_normalitza_a t =
-    let t' = redueix_un_a t in
-        if t == t' 
-           then [t]
-           else t:l_normalitza_a t'
+l_normalitza_a t | esta_normal t = t:[]
+                 | otherwise = t:l_normalitza_a t'
+    where t' = redueix_un_a t
 
 -- normalitza_n, rep un LT, i retorna una tupla amb el nombre de passos, més el LT en forma normal, seguint l'ordre normal
---normalitza_n :: LT -> (Int,LT)
---normalitza_n (Ap m n) = redueix_un_n (Ap m n) -- en desenvolupament
+normalitza_n :: LT -> (Int,LT)
+normalitza_n = normalitza_n_aux 0
+
+-- normalitza_n_aux, funció auxiliar cridada per normalitza_n
+normalitza_n_aux :: Int -> LT -> (Int,LT)
+normalitza_n_aux n t | esta_normal t = (n,t)
+                     | otherwise = (n+1,snd (normalitza_n_aux (n+1) t'))
+    where t' = redueix_un_n t
 
 -- normalitza_a, rep un LT, i retorna una tupla amb el nombre de passos, més el LT en forma normal, seguint l'ordre aplicatiu
 --normalitza_a :: LT -> (Int,LT)
