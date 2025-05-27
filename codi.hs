@@ -6,9 +6,7 @@
 -- Definicions de tipus
 
 -- definició literal de la gramàtica del lambda càlcul
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-{-# HLINT ignore "Use camelCase" #-}
-data LT = Va String | Ap LT LT | Ab String LT
+data LT = Va String | Ap LT LT | Ab String LT deriving Read
 
 -- fem instància de la classe Show i Eq al tipus de dades LT
 -- definim la forma de mostrar un lambda terme
@@ -225,4 +223,9 @@ t = (Ap (Ab "x" (Ab "y" (Ap (Va "y") (Ap (Ap (Va "x") (Va "x")) (Va "y"))))) (Ab
 
 main :: IO ()
 main = do
-    putStrLn(show t)
+    putStrLn "Entra el teu nom:"
+    name <- getLine
+    putStrLn ("Hola " ++ name ++ ", entra un lambda-terme:")
+    lt <- getLine
+    let t = read lt :: LT
+    putStrLn (show t)
