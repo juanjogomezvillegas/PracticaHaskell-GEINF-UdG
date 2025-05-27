@@ -62,6 +62,11 @@ conte_redex (Ap t1 t2) | es_redex (Ap t1 t2) = True
                        | es_redex t2 = True
                        | otherwise = conte_redex t1 || conte_redex t2
 
+-- is_var, funció que diu si un LT és una variable
+is_var :: LT -> Bool
+is_var (Va _) = True
+is_var _ = False
+
 -- get_var, donat una variable d'un lambda terme retorna la variable com un string
 get_var :: LT -> String
 get_var (Va a) = a
@@ -100,9 +105,12 @@ subst :: LT -> Substitucio -> LT
 subst (Va a) (Sub v t') | a == v = t'
                         | otherwise = Va a
 subst (Ap t1 t2) (Sub v t') = Ap (subst t1 (Sub v t')) (subst t2 (Sub v t'))
-subst (Ab a t1) (Sub v t') | [x |x <- (fst (freeAndboundVars t')), y <- (snd (freeAndboundVars (Ab a t1))), x == y] == [] =
-                                if a == v then Ab (get_var t') (subst t1 (Sub v t')) else Ab a (subst t1 (Sub v t'))
+subst (Ab a t1) (Sub v t') | a == v = if is_var t' then Ab (get_var t') (subst t1 (Sub v t')) else Ab a t1
+                           | a /= v && a `notElem` fst (freeAndboundVars t') = Ab a (subst t1 (Sub v t'))
+                           | a /= v && a `elem` fst (freeAndboundVars t') = subst (alfa_conv t1 t' a (a ++ "\'")) (Sub v t')
                            | otherwise = Ab a t1
+    where alfa_conv t1 t' v' v'' | v'' `notElem` fst (freeAndboundVars t') && v'' `notElem` fst (freeAndboundVars t1) = Ab v'' (subst t1 (Sub v' (Va v'')))
+                                 | otherwise = alfa_conv t1 t' v' (v'' ++ "\'")
 
 -- esta_normal, diu si LT ja està en forma normal
 esta_normal :: LT -> Bool
@@ -228,4 +236,4 @@ main = do
     putStrLn ("Hola " ++ name ++ ", entra un lambda-terme:")
     lt <- getLine
     let t = read lt :: LT
-    putStrLn (show t)
+    print t
