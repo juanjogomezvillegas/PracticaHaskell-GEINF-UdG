@@ -79,11 +79,11 @@ concat_tuples :: Eq a => ([a],[a]) -> ([a],[a]) -> ([a],[a])
 concat_tuples t1 t2 = (eliminar_duplicats (fst t1 ++ fst t2),eliminar_duplicats (snd t1 ++ snd t2))
 
 -- freeAndboundVarsAux, funció que construeix una tupla amb dues llistes que continguin les variables lliures (first) i lligades (second)
-freeAndboundVarsAux :: LT -> [String] -> [String] -> ([String],[String])
-freeAndboundVarsAux (Va a) freeVars boundVars | a `elem` boundVars = (freeVars,boundVars)
+freeAndboundVarsAux :: [String] -> [String] -> LT -> ([String],[String])
+freeAndboundVarsAux freeVars boundVars (Va a) | a `elem` boundVars = (freeVars,boundVars)
                                               | otherwise = (a:freeVars,boundVars)
-freeAndboundVarsAux (Ab a t1) freeVars boundVars = freeAndboundVarsAux t1 freeVars (a:boundVars)
-freeAndboundVarsAux (Ap t1 t2) freeVars boundVars = freeAndboundVarsAux t1 freeVars boundVars `concat_tuples` freeAndboundVarsAux t2 freeVars boundVars
+freeAndboundVarsAux freeVars boundVars (Ab a t1) = freeAndboundVarsAux freeVars (a:boundVars) t1
+freeAndboundVarsAux freeVars boundVars (Ap t1 t2) = freeAndboundVarsAux freeVars boundVars t1 `concat_tuples` freeAndboundVarsAux freeVars boundVars t2
 
 -- ltPertanyA, funció que diu si un LT conté variables presents en una llista
 ltPertanyA :: LT -> [String] -> Bool
@@ -95,7 +95,7 @@ ltPertanyA (Ap t1 t2) l = (&&) (ltPertanyA t1 l) (ltPertanyA t2 l)
 
 -- freeAndboundVars, donat un LT retorna una tupla amb una llista de freeVars i una llista de boundVars
 freeAndboundVars :: LT -> ([String],[String])
-freeAndboundVars t = freeAndboundVarsAux t [] []
+freeAndboundVars = freeAndboundVarsAux [] []
 
 -- subst, donat un LT i una Substitucio, retorna el mateix LT al que se li ha aplicat la Substitucio
 subst :: LT -> Substitucio -> LT
@@ -108,14 +108,11 @@ subst (Ab a t1) (Sub v t') | [x |x <- (fst (freeAndboundVars t')), y <- (snd (fr
 
 -- esta_normal, diu si LT ja està en forma normal
 esta_normal :: LT -> Bool
-esta_normal (Va a) = True
-esta_normal (Ap (Ab _ _) _) = False
-esta_normal (Ab _ t1) = esta_normal t1
-esta_normal (Ap t1 t2) = (&&) (esta_normal t1) (esta_normal t2)
+esta_normal = not . conte_redex
 
 -- beta_redueix, rep un LT que sigui un redex, i el resol
 beta_redueix :: LT -> LT
-beta_redueix (Ap (Ab v t1) t2) = subst t1 (Sub v t2)
+beta_redueix (Ap (Ab a t1) t2) = subst t1 (Sub a t2)
 beta_redueix t = t
 
 -- redueix_un_n, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reducció segons l'ordre normal
