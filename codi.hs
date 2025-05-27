@@ -202,6 +202,12 @@ producte = (Ab "m" (Ab "n" (Ab "f" (Ab "x" ((Ap (Ap (Va "m") (Ap (Va "n") (Va "f
 eszero :: LT
 eszero = (Ab "n" (Ap (Ap (Va "n") (Ab "x" false)) true))
 
+g :: LT
+g = (Ab "x" (Ap (Ab "y" (Ab "x" (Ap (Va "y") (Va "y")))) (Ab "y" (Ab "x" (Ap (Va "y") (Va "y"))))))
+
+gprima :: LT
+gprima = (Ab "x" (Ap (Va "x") (Ap (Ab "y" (Ab "x" (Ap (Va "x") (Ap (Va "y") (Va "y"))))) (Ab "y" (Ab "x" (Ap (Va "x") (Ap (Va "y") (Va "y"))))))))
+
 y :: LT
 y = (Ab "f" (Ap (Ab "x" (Ap (Va "f") (Ap (Va "x") (Va "x")))) (Ab "x" (Ap (Va "f") (Ap (Va "x") (Va "x"))))))
 
