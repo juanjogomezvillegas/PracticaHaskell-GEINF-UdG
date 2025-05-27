@@ -6,6 +6,8 @@
 -- Definicions de tipus
 
 -- definició literal de la gramàtica del lambda càlcul
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use camelCase" #-}
 data LT = Va String | Ap LT LT | Ab String LT
 
 -- fem instància de la classe Show i Eq al tipus de dades LT
@@ -47,43 +49,46 @@ type Context = String
 
 -- Funcions auxiliars
 
--- esRedex, funció que donat un LT, retorna True si es un redex, False altrament
-esRedex :: LT -> Bool
-esRedex (Ap (Ab _ _) _) = True
-esRedex _ = False
+-- es_redex, funció que donat un LT, retorna True si es un redex, False altrament
+es_redex :: LT -> Bool
+es_redex (Ap (Ab _ _) _) = True
+es_redex _ = False
 
--- conteRedex, funció que determina si un terme conté qualsevol redex (en qualsevol nivell, equivalent a fer esRedex sobre tot el terme)
-conteRedex :: LT -> Bool
-conteRedex (Ap m n) = conteRedex m || conteRedex n
-conteRedex (Ab _ t) = conteRedex t
-conteRedex t | esRedex t = True
-             | otherwise = False
+-- conte_redex, funció que determina si un terme conté qualsevol redex (en qualsevol nivell, equivalent a fer esRedex sobre tot el terme)
+conte_redex :: LT -> Bool
+conte_redex (Va _) = False
+conte_redex (Ab _ t) | es_redex t = True
+                     | otherwise = conte_redex t
+conte_redex (Ap t1 t2) | es_redex (Ap t1 t2) = True
+                       | es_redex t1 = True
+                       | es_redex t2 = True
+                       | otherwise = conte_redex t1 || conte_redex t2
 
--- getVar, donat una variable d'un lambda terme retorna la variable com un string
-getVar :: LT -> String
-getVar (Va a) = a
-getVar (Ab a _) = a
-getVar (Ap t1 _) = (getVar t1)
+-- get_var, donat una variable d'un lambda terme retorna la variable com un string
+get_var :: LT -> String
+get_var (Va a) = a
+get_var (Ab a _) = a
+get_var (Ap t1 _) = get_var t1
 
--- eliminarDuplicats, funció que elimina els elements duplicats d'una llista
-eliminarDuplicats :: Eq a => [a] -> [a]
-eliminarDuplicats = foldr (\x xs -> if x `elem` xs then xs else x:xs) []
+-- eliminar_duplicats, funció que elimina els elements duplicats d'una llista
+eliminar_duplicats :: Eq a => [a] -> [a]
+eliminar_duplicats = foldr (\x xs -> if x `elem` xs then xs else x:xs) []
 
--- concatTuples, operador que concatena o intercalar dues llistes que són a dins d'una tupla
-concatTuples :: Eq a => ([a],[a]) -> ([a],[a]) -> ([a],[a])
-concatTuples t1 t2 = (eliminarDuplicats (fst t1 ++ fst t2),eliminarDuplicats (snd t1 ++ snd t2))
+-- concat_tuples, operador que concatena o intercalar dues llistes que són a dins d'una tupla
+concat_tuples :: Eq a => ([a],[a]) -> ([a],[a]) -> ([a],[a])
+concat_tuples t1 t2 = (eliminar_duplicats (fst t1 ++ fst t2),eliminar_duplicats (snd t1 ++ snd t2))
 
 -- freeAndboundVarsAux, funció que construeix una tupla amb dues llistes que continguin les variables lliures (first) i lligades (second)
 freeAndboundVarsAux :: LT -> [String] -> [String] -> ([String],[String])
 freeAndboundVarsAux (Va a) freeVars boundVars | a `elem` boundVars = (freeVars,boundVars)
                                               | otherwise = (a:freeVars,boundVars)
-freeAndboundVarsAux (Ab a t1) freeVars boundVars = (freeAndboundVarsAux t1 freeVars (a:boundVars))
-freeAndboundVarsAux (Ap t1 t2) freeVars boundVars = (freeAndboundVarsAux t1 freeVars boundVars) `concatTuples` (freeAndboundVarsAux t2 freeVars boundVars)
+freeAndboundVarsAux (Ab a t1) freeVars boundVars = freeAndboundVarsAux t1 freeVars (a:boundVars)
+freeAndboundVarsAux (Ap t1 t2) freeVars boundVars = freeAndboundVarsAux t1 freeVars boundVars `concat_tuples` freeAndboundVarsAux t2 freeVars boundVars
 
 -- ltPertanyA, funció que diu si un LT conté variables presents en una llista
 ltPertanyA :: LT -> [String] -> Bool
 ltPertanyA (Va a) l = a `elem` l
-ltPertanyA (Ab _ t1) l = (ltPertanyA t1 l)
+ltPertanyA (Ab _ t1) l = ltPertanyA t1 l
 ltPertanyA (Ap t1 t2) l = (&&) (ltPertanyA t1 l) (ltPertanyA t2 l)
 
 -- Funcions principals
@@ -95,16 +100,17 @@ freeAndboundVars t = freeAndboundVarsAux t [] []
 -- subst, donat un LT i una Substitucio, retorna el mateix LT al que se li ha aplicat la Substitucio
 subst :: LT -> Substitucio -> LT
 subst (Va a) (Sub v t') | a == v = t'
-                        | otherwise = (Va a)
-subst (Ap t1 t2) (Sub v t') = (Ap (subst t1 (Sub v t')) (subst t2 (Sub v t')))
-subst (Ab a t1) (Sub v t') | [x |x <- (fst (freeAndboundVars t')), y <- (snd (freeAndboundVars (Ab a t1))), x == y] == [] = if a == v then (Ab (getVar t') (subst t1 (Sub v t'))) else (Ab a (subst t1 (Sub v t')))
-                           | otherwise = (Ab a t1)
+                        | otherwise = Va a
+subst (Ap t1 t2) (Sub v t') = Ap (subst t1 (Sub v t')) (subst t2 (Sub v t'))
+subst (Ab a t1) (Sub v t') | [x |x <- (fst (freeAndboundVars t')), y <- (snd (freeAndboundVars (Ab a t1))), x == y] == [] = 
+                                if a == v then Ab (get_var t') (subst t1 (Sub v t')) else Ab a (subst t1 (Sub v t'))
+                           | otherwise = Ab a t1
 
 -- esta_normal, diu si LT ja està en forma normal
 esta_normal :: LT -> Bool
 esta_normal (Va a) = True
 esta_normal (Ap (Ab _ _) _) = False
-esta_normal (Ab _ t1) = (esta_normal t1)
+esta_normal (Ab _ t1) = esta_normal t1
 esta_normal (Ap t1 t2) = (&&) (esta_normal t1) (esta_normal t2)
 
 -- beta_redueix, rep un LT que sigui un redex, i el resol
@@ -114,18 +120,18 @@ beta_redueix t = t
 
 -- redueix_un_n, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reducció segons l'ordre normal
 redueix_un_n :: LT -> LT
-redueix_un_n (Ap m n) | conteRedex (Ap m n) = beta_redueix (Ap m n)
-                      | conteRedex m = redueix_un_n m
-                      | conteRedex n = redueix_un_n n
-                      | otherwise = (Ap m n)
+redueix_un_n (Ap m n) | conte_redex (Ap m n) = beta_redueix (Ap m n)
+                      | conte_redex m = Ap (redueix_un_n m) n
+                      | conte_redex n = Ap m (redueix_un_n n)
+                      | otherwise = Ap m n
 redueix_un_n (Ab x t) = Ab x (redueix_un_n t)
 
 -- redueix_un_a, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reducció segons l'ordre aplicatiu
 redueix_un_a :: LT -> LT
-redueix_un_a (Ap m n) | conteRedex m = (Ap (redueix_un_a m) n)
-                      | conteRedex n = (Ap m (redueix_un_a n))
-                      | conteRedex (Ap m n) = beta_redueix (Ap m n)
-                      | otherwise = (Ap m n)
+redueix_un_a (Ap m n) | conte_redex m = Ap (redueix_un_a m) n
+                      | conte_redex n = Ap m (redueix_un_a n)
+                      | conte_redex (Ap m n) = beta_redueix (Ap m n)
+                      | otherwise = Ap m n
 redueix_un_a (Ab x t) = Ab x (redueix_un_a t)
 
 -- l_normalitza_n, rep un LT, i retorna una llista de LT's que sigui una seqüència de beta-reduccions, segons l'ordre normal
