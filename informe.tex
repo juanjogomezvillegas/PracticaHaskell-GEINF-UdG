@@ -10,11 +10,22 @@
 \usepackage{listings}
 \graphicspath{{./imatges/}}% Lloc on hi ha els logos
 
-\lstset{
-    commentstyle=\color{green}, % Color dels comentaris
-    keywordstyle=\color{blue},   % Color de les paraules clau
-    stringstyle=\color{cyan},     % Color de les cadenes
-    basicstyle=\ttfamily,        % Estil bàsic del text
+\definecolor{backcolour}{rgb}{0.83, 0.83, 0.83}
+\definecolor{textcolour}{rgb}{0.0, 0.0, 0.0}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},  
+    basicstyle=\ttfamily\footnotesize\color{textcolour}, 
+    breakatwhitespace=false, 
+    breaklines=true,  
+    captionpos=b, 
+    keepspaces=true,                 
+    numbers=left, 
+    numbersep=5pt, 
+    showspaces=false, 
+    showstringspaces=false, 
+    showtabs=false, 
+    tabsize=2
 }
 
 \lhead{Informe de la pràctica de Haskell}
@@ -64,7 +75,8 @@
 
 El tipus de dades \textbf{LT} ens permet representar $\lambda$-termes, i la definició és exactament la gramàtica que diu el que és un $\lambda$-terme.
 
-\begin{lstlisting}[language=Haskell]
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
 data LT = Va String | Ap LT LT | Ab String LT
 
 -- definim la forma de mostrar un lambda terme
@@ -85,7 +97,8 @@ En el codi també es veu com hem fet per tal que el \textbf{tipus LT} sigui una 
 
 També hem definit el tipus de dades \textbf{Substitució}, que ens ha permet implementar la funció substitució tal i com diu la teòria, és a dir, com un operador que ens permet reemplaçar ocurrències de variables per termes, evitant captura de variables lliures. Per tant, el tipus \textbf{Substitució} serà una variable $v$ per un terme $M'$, i la funció \textbf{subst} una \textbf{Substitució} sobre un terme $M$, tot junt representarà: $M [v -> M']$.
 
-\begin{lstlisting}[language=Haskell]
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
 data Substitucio = Sub String LT
 \end{lstlisting}
 
@@ -93,93 +106,107 @@ data Substitucio = Sub String LT
 
 \subsection{Funcions principals}
 
-\begin{lstlisting}[language=Haskell]
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
 -- freeAndboundVars, donat un LT retorna una tupla amb una llista de freeVars i una llista de boundVars
 freeAndboundVars :: LT -> ([String],[String])
-freeAndboundVars t = freeAndboundVarsAux t [] []
+freeAndboundVars = freeAndboundVarsAux [] []
 
 -- freeAndboundVarsAux, funcio que construeix una tupla amb dues llistes que continguin les variables lliures (first) i lligades (second)
-freeAndboundVarsAux :: LT -> [String] -> [String] -> ([String],[String])
-freeAndboundVarsAux (Va a) freeVars boundVars = if a `elem` boundVars then (freeVars,boundVars) else (a:freeVars,boundVars)
-freeAndboundVarsAux (Ab a t1) freeVars boundVars = (freeAndboundVarsAux t1 freeVars (a:boundVars))
-freeAndboundVarsAux (Ap t1 t2) freeVars boundVars = (freeAndboundVarsAux t1 freeVars boundVars) `concatTuples` (freeAndboundVarsAux t2 freeVars boundVars)
+freeAndboundVarsAux :: [String] -> [String] -> LT -> ([String],[String])
+freeAndboundVarsAux freeVars boundVars (Va a) | a `elem` boundVars = (freeVars,boundVars)
+                                              | otherwise = (a:freeVars,boundVars)
+freeAndboundVarsAux freeVars boundVars (Ab a t1) = freeAndboundVarsAux freeVars (a:boundVars) t1
+freeAndboundVarsAux freeVars boundVars (Ap t1 t2) = freeAndboundVarsAux freeVars boundVars t1 `concat_tuples` freeAndboundVarsAux freeVars boundVars t2
 \end{lstlisting}
 
 
 
-\begin{lstlisting}[language=Haskell]
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
 -- subst, donat un LT i una Substitucio, retorna el mateix LT al que se li ha aplicat la Substitucio
 subst :: LT -> Substitucio -> LT
-subst t s = substAuxInt t s (freeAndboundVars t)
-
---substAuxInt, funcio intermedia on comprovarem que no es produira cap captura de cap variable lliure
-substAuxInt :: LT -> Substitucio -> ([String],[String]) -> LT
-substAuxInt t (Sub v t') l = if (ltPertanyA t' (fst l)) || (ltPertanyA t' (snd l)) then t else substAux t (Sub v t') l
-
--- substAux, el mateix subst pero rebent tambe la tupla amb les llistes de variables lliures i lligades
-substAux :: LT -> Substitucio -> ([String],[String]) -> LT
-substAux (Va a) (Sub v t') l = if a == v && a `elem` (snd l) then t' else (Va a)
-substAux (Ab a t1) (Sub v t') l = if a == v then (Ab (getVar t') (substAux t1 (Sub v t') l)) else (Ab a (substAux t1 (Sub v t') l))
-substAux (Ap t1 t2) (Sub v t') l = (Ap (substAux t1 (Sub v t') l) (substAux t2 (Sub v t') l))
+subst (Va a) (Sub v t') | a == v = t'
+                        | otherwise = Va a
+subst (Ap t1 t2) (Sub v t') = Ap (subst t1 (Sub v t')) (subst t2 (Sub v t'))
+subst (Ab a t1) (Sub v t') | [x |x <- (fst (freeAndboundVars t')), y <- (snd (freeAndboundVars (Ab a t1))), x == y] == [] = 
+                                if a == v then Ab (get_var t') (subst t1 (Sub v t')) else Ab a (subst t1 (Sub v t'))
+                           | otherwise = Ab a t1
 \end{lstlisting}
 
 
 
-\begin{lstlisting}[language=Haskell]
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
 -- esta_normal, diu si LT ja esta en forma normal
 esta_normal :: LT -> Bool
-esta_normal (Va a) = True
-esta_normal (Ap (Ab _ _) _) = False
-esta_normal (Ab _ t1) = (esta_normal t1)
-esta_normal (Ap t1 t2) = (&&) (esta_normal t1) (esta_normal t2)
+esta_normal = not . conte_redex
 \end{lstlisting}
 
 
 
-\begin{lstlisting}[language=Haskell]
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
 -- beta_redueix, rep un LT que sigui un redex, i el resol
 beta_redueix :: LT -> LT
-beta_redueix (Ap (Ab v t1) t2) = substAuxInt t1 (Sub v t2) (freeAndboundVars (Ab v t1))
+beta_redueix (Ap (Ab a t1) t2) = subst t1 (Sub a t2)
+beta_redueix t = t
 \end{lstlisting}
 
 
 
-\begin{lstlisting}[language=Haskell]
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
 -- redueix_un_n, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reduccio segons l'ordre normal
 redueix_un_n :: LT -> LT
+redueix_un_n (Ap m n) | conte_redex (Ap m n) = beta_redueix (Ap m n)
+                      | conte_redex m = Ap (redueix_un_n m) n
+                      | conte_redex n = Ap m (redueix_un_n n)
+                      | otherwise = Ap m n
+redueix_un_n (Ab x t) = Ab x (redueix_un_n t)
 \end{lstlisting}
 
 
 
-\begin{lstlisting}[language=Haskell]
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
 -- redueix_un_a, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reduccio segons l'ordre aplicatiu
 redueix_un_a :: LT -> LT
+redueix_un_a (Ap m n) | conte_redex m = Ap (redueix_un_a m) n
+                      | conte_redex n = Ap m (redueix_un_a n)
+                      | conte_redex (Ap m n) = beta_redueix (Ap m n)
+                      | otherwise = Ap m n
+redueix_un_a (Ab x t) = Ab x (redueix_un_a t)
 \end{lstlisting}
 
 
 
-\begin{lstlisting}[language=Haskell]
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
 -- l_normalitza_n, rep un LT, i retorna una llista de LT's que sigui una sequencia de beta-reduccions, segons l'ordre normal
 l_normalitza_n :: LT -> [LT]
 \end{lstlisting}
 
 
 
-\begin{lstlisting}[language=Haskell]
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
 -- l_normalitza_a, rep un LT, i retorna una llista de LT's que sigui una sequencia de beta-reduccions, segons l'ordre aplicatiu
 l_normalitza_a :: LT -> [LT]
 \end{lstlisting}
 
 
 
-\begin{lstlisting}[language=Haskell]
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
 -- normalitza_n, rep un LT, i retorna una tupla amb el nombre de passos, mes el LT en forma normal, seguint l'ordre normal
 normalitza_n :: LT -> (Int,LT)
 \end{lstlisting}
 
 
 
-\begin{lstlisting}[language=Haskell]
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
 -- normalitza_a, rep un LT, i retorna una tupla amb el nombre de passos, mes el LT en forma normal, seguint l'ordre aplicatiu
 normalitza_a :: LT -> (Int,LT)
 \end{lstlisting}
