@@ -100,7 +100,7 @@ subst :: LT -> Substitucio -> LT
 subst (Va a) (Sub v t') | a == v = t'
                         | otherwise = Va a
 subst (Ap t1 t2) (Sub v t') = Ap (subst t1 (Sub v t')) (subst t2 (Sub v t'))
-subst (Ab a t1) (Sub v t') | [x |x <- (fst (freeAndboundVars t')), y <- (snd (freeAndboundVars (Ab a t1))), x == y] == [] = 
+subst (Ab a t1) (Sub v t') | [x |x <- (fst (freeAndboundVars t')), y <- (snd (freeAndboundVars (Ab a t1))), x == y] == [] =
                                 if a == v then Ab (get_var t') (subst t1 (Sub v t')) else Ab a (subst t1 (Sub v t'))
                            | otherwise = Ab a t1
 
@@ -163,61 +163,61 @@ normalitza_n_aux n t | esta_normal t = (n,t)
 -- Alguns combinadors i definicions del meta-llenguatge
 
 iden :: LT
-iden = (Ab "x" (Va "x"))
+iden = Ab "x" (Va "x")
 
 true :: LT
-true = (Ab "x" (Ab "y" (Va "x")))
+true = Ab "x" (Ab "y" (Va "x"))
 
 false :: LT
-false = (Ab "x" (Ab "y" (Va "y")))
+false = Ab "x" (Ab "y" (Va "y"))
 
 notDef :: LT
-notDef = (Ab "t" (Ap false true))
+notDef = Ab "t" (Ap false true)
 
 cond :: LT -> LT -> LT -> LT
-cond e e1 e2 = (Ap (Ap e e1) e2)
+cond e e1 e2 = Ap (Ap e e1) e2
 
 andDef :: LT
-andDef = (Ab "x" (Ab "y" (cond (Va "x") (Va "y") false)))
+andDef = Ab "x" (Ab "y" (cond (Va "x") (Va "y") false))
 
 tupla :: LT
-tupla = (Ab "x" (Ab "y" (Ab "p" (Ap (Ap (Va "p") (Va "x")) (Va "y")))))
+tupla = Ab "x" (Ab "y" (Ab "p" (Ap (Ap (Va "p") (Va "x")) (Va "y"))))
 
 first :: LT
-first = (Ab "x" (Ap (Va "x") true))
+first = Ab "x" (Ap (Va "x") true)
 
 second :: LT
-second = (Ab "x" (Ap (Va "x") false))
+second = Ab "x" (Ap (Va "x") false)
 
 succDef :: LT
-succDef = (Ab "n" (Ab "f" (Ab "x" (Ap ((Ap (Va "n") (Va "f"))) ((Ap (Va "f") (Va "x")))))))
+succDef = Ab "n" (Ab "f" (Ab "x" (Ap (Ap (Va "n") (Va "f")) (Ap (Va "f") (Va "x")))))
 
 prefn :: LT
-prefn = (Ab "f" (Ab "p" (Ab "p" (Ap (Ap (Va "p") false) (cond (Ap first (Va "p")) (Ap second (Va "p")) (Ap (Va "f") (Ap second (Va "p"))))))))
+prefn = Ab "f" (Ab "p" (Ab "p" (Ap (Ap (Va "p") false) (cond (Ap first (Va "p")) (Ap second (Va "p")) (Ap (Va "f") (Ap second (Va "p")))))))
 
 prec :: LT
-prec = (Ab "n" (Ab "f" (Ab "x" (Ap second (Ap (Ap (Va "n") (Ap (prefn) (Va "f"))) (Ab "p" (Ap (Ap (Va "p") true) (Va "x"))))))))
+prec = Ab "n" (Ab "f" (Ab "x" (Ap second (Ap (Ap (Va "n") (Ap (prefn) (Va "f"))) (Ab "p" (Ap (Ap (Va "p") true) (Va "x")))))))
 
 suma :: LT
-suma = (Ab "m" (Ab "n" (Ab "f" (Ab "x" (Ap ((Ap (Va "m") (Va "f"))) ((Ap (Ap (Va "n") (Va "f")) (Va "x"))))))))
+suma = Ab "m" (Ab "n" (Ab "f" (Ab "x" (Ap (Ap (Va "m") (Va "f")) (Ap (Ap (Va "n") (Va "f")) (Va "x"))))))
 
 producte :: LT
-producte = (Ab "m" (Ab "n" (Ab "f" (Ab "x" ((Ap (Ap (Va "m") (Ap (Va "n") (Va "f"))) (Va "x")))))))
+producte = Ab "m" (Ab "n" (Ab "f" (Ab "x" (Ap (Ap (Va "m") (Ap (Va "n") (Va "f"))) (Va "x")))))
 
 eszero :: LT
-eszero = (Ab "n" (Ap (Ap (Va "n") (Ab "x" false)) true))
+eszero = Ab "n" (Ap (Ap (Va "n") (Ab "x" false)) true)
 
 g :: LT
-g = (Ab "x" (Ap (Ab "y" (Ab "x" (Ap (Va "y") (Va "y")))) (Ab "y" (Ab "x" (Ap (Va "y") (Va "y"))))))
+g = Ab "x" (Ap (Ab "y" (Ab "x" (Ap (Va "y") (Va "y")))) (Ab "y" (Ab "x" (Ap (Va "y") (Va "y")))))
 
 gprima :: LT
-gprima = (Ab "x" (Ap (Va "x") (Ap (Ab "y" (Ab "x" (Ap (Va "x") (Ap (Va "y") (Va "y"))))) (Ab "y" (Ab "x" (Ap (Va "x") (Ap (Va "y") (Va "y"))))))))
+gprima = Ab "x" (Ap (Va "x") (Ap (Ab "y" (Ab "x" (Ap (Va "x") (Ap (Va "y") (Va "y"))))) (Ab "y" (Ab "x" (Ap (Va "x") (Ap (Va "y") (Va "y")))))))
 
 y :: LT
-y = (Ab "f" (Ap (Ab "x" (Ap (Va "f") (Ap (Va "x") (Va "x")))) (Ab "x" (Ap (Va "f") (Ap (Va "x") (Va "x"))))))
+y = Ab "f" (Ap (Ab "x" (Ap (Va "f") (Ap (Va "x") (Va "x")))) (Ab "x" (Ap (Va "f") (Ap (Va "x") (Va "x")))))
 
 t :: LT
-t = (Ap (Ab "x" (Ab "y" (Ap (Va "y") (Ap (Ap (Va "x") (Va "x")) (Va "y"))))) (Ab "x" (Ab "y" (Ap (Va "y") (Ap (Ap (Va "x") (Va "x")) (Va "y"))))))
+t = Ap (Ab "x" (Ab "y" (Ap (Va "y") (Ap (Ap (Va "x") (Va "x")) (Va "y"))))) (Ab "x" (Ab "y" (Ap (Va "y") (Ap (Ap (Va "x") (Va "x")) (Va "y")))))
 
 -- Funció principal
 
