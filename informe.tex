@@ -73,13 +73,14 @@
 
 \subsection{Tipus}
 
-El tipus de dades \textbf{LT} ens permet representar $\lambda$-termes, i la definició és exactament la gramàtica que diu el que és un $\lambda$-terme.
+El tipus de dades \textbf{LT} ens permet representar $\lambda$-termes, i la definició és exactament la gramàtica que diu el que és un $\lambda$-terme, és a dir, un $\lambda$-terme és: una variable, una aplicació i una abstracció, res més és un $\lambda$-terme.
 
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
+
 data LT = Va String | Ap LT LT | Ab String LT
 
--- definim la forma de mostrar un lambda terme
+-- definim la forma de mostrar un lambda terme, els lambda termes es mostraran com (\x. (x y))
 instance Show LT where
     show (Va a) = a
     show (Ap t1 t2) = "(" ++ show t1 ++ " " ++ show t2 ++ ")"
@@ -93,25 +94,79 @@ instance Eq LT where
     (==) _ _ = False
 \end{lstlisting}
 
-En el codi també es veu com hem fet per tal que el \textbf{tipus LT} sigui una instància de les classes \textbf{Show} i \textbf{Eq}, definint així com es mostraran els $\lambda$-termes, i que vol dir que dos $\lambda$-termes siguin equivalents. \\
+El \textbf{tipus LT} ha de ser instància de la classe \textbf{Show}, per tal que es pugui mostrar com nosaltres volguem, \textit{com diu a l'enunciat}, i ha de ser instància de la classe \textbf{Eq}, per tal de definir la idea d'equivalència de dos $\lambda$-termes, és a dir, dos $\lambda$-termes seran el mateix quan, siguin dues abstraccions i independentment de la variable, els seus $\lambda$-termes interns siguin iguals, quan siguin dues aplicacions i aquestes siguin iguals, quan siguin dos variables iguals. \\
 
-També hem definit el tipus de dades \textbf{Substitució}, que ens ha permet implementar la funció substitució tal i com diu la teòria, és a dir, com un operador que ens permet reemplaçar ocurrències de variables per termes, evitant captura de variables lliures. Per tant, el tipus \textbf{Substitució} serà una variable $v$ per un terme $M'$, i la funció \textbf{subst} una \textbf{Substitució} sobre un terme $M$, tot junt representarà: $M [v -> M']$.
+També hem definit el tipus de dades \textbf{Substitució}, que \textbf{ens ha permès implementar la funció subst} tal com diu la teoria, és a dir, \textbf{com un operador que ens permet reemplaçar ocurrències de variables per termes, evitant captura de variables lliures}. Per tant, el tipus \textbf{Substitució} serà una variable $v$ que serà reemplaçada per un terme $M'$, sobre un terme $M$, definit a la funció \textbf{subst}, tot junt representarà: $M [v -> M']$.
 
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
 data Substitucio = Sub String LT
 \end{lstlisting}
 
+\clearpage
+
 \subsection{Funcions auxiliars}
 
-\subsection{Funcions principals}
+Les següents funcions ens permeten implementar les funcions principals com funcions d'ordre superior. \\
+
+La funció \textbf{es\_redex} ens diu si un $\lambda$-terme té la forma d'un redex, o no.
 
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
--- freeAndboundVars, donat un LT retorna una tupla amb una llista de freeVars i una llista de boundVars
-freeAndboundVars :: LT -> ([String],[String])
-freeAndboundVars = freeAndboundVarsAux [] []
+-- es_redex, funcio que donat un LT, retorna True si es un redex, False altrament
+es_redex :: LT -> Bool
+es_redex (Ap (Ab _ _) _) = True
+es_redex _ = False
+\end{lstlisting}
 
+I per buscar redex en un $\lambda$-terme $T$, la funció \textbf{conte\_redex} ens diu si un terme qualsevol conté un redex a dins, \textbf{fent servir la funció es\_redex}, i funciona de la manera següent: Una variable no conté cap redex (retorna fals, cas base), una abstracció conté un redex, si i només si, el terme que conté a dins \textbf{és un redex}, i una aplicació conté un redex, si qualsevol dels dos termes de dins \textbf{són o contenen un redex}. Aquesta funció retorna cert si conté un redex, amb això ja podem simplificar el codi de les funcions principals.
+
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
+-- conte_redex, funcio que determina si un terme conte qualsevol redex (en qualsevol nivell, equivalent a fer esRedex sobre tot el terme)
+conte_redex :: LT -> Bool
+conte_redex (Va _) = False
+conte_redex (Ab _ t) | es_redex t = True
+                     | otherwise = conte_redex t
+conte_redex (Ap t1 t2) | es_redex (Ap t1 t2) = True
+                       | es_redex t1 = True
+                       | es_redex t2 = True
+                       | otherwise = conte_redex t1 || conte_redex t2
+\end{lstlisting}
+
+Les següents funcions ajuden a implementar la funció \textbf{subst}.
+
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
+-- is_var, funcio que diu si un LT es una variable
+is_var :: LT -> Bool
+is_var (Va _) = True
+is_var _ = False
+
+-- get_var, donat una variable d'un lambda terme retorna la variable com un string
+get_var :: LT -> String
+get_var (Va a) = a
+get_var (Ab a _) = a
+get_var (Ap t1 _) = get_var t1
+\end{lstlisting}
+
+I les següents funcions ajuden a implementar la funció auxiliar que retorna les variables lliures i lligades d'un terme qualsevol. La funció \textbf{eliminar\_duplicats}, donada una llista de variables, retorna la mateixa llista sense repetits, això soluciona un error trobar implementant la funció \textbf{freeAndboundVarsAux} en què les variables sortien repetides. I la funció \textbf{concat\_tuples} s'utilitza en la mateixa funció, en el cas que el terme entrat sigui una aplicació.
+
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
+-- eliminar_duplicats, funcio que elimina els elements duplicats d'una llista
+eliminar_duplicats :: Eq a => [a] -> [a]
+eliminar_duplicats = foldr (\x xs -> if x `elem` xs then xs else x:xs) []
+
+-- concat_tuples, operador que concatena o intercalar dues llistes que son a dins d'una tupla
+concat_tuples :: Eq a => ([a],[a]) -> ([a],[a]) -> ([a],[a])
+concat_tuples t1 t2 = (eliminar_duplicats (fst t1 ++ fst t2),eliminar_duplicats (snd t1 ++ snd t2))
+\end{lstlisting}
+
+La següent funció a partir d'un $\lambda$-terme qualsevol, retorna una tupla amb dues llistes: primer una llista amb les variables lliures, segon una llista amb les variables lligades.
+
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
 -- freeAndboundVarsAux, funcio que construeix una tupla amb dues llistes que continguin les variables lliures (first) i lligades (second)
 freeAndboundVarsAux :: [String] -> [String] -> LT -> ([String],[String])
 freeAndboundVarsAux freeVars boundVars (Va a) | a `elem` boundVars = (freeVars,boundVars)
@@ -120,7 +175,20 @@ freeAndboundVarsAux freeVars boundVars (Ab a t1) = freeAndboundVarsAux freeVars 
 freeAndboundVarsAux freeVars boundVars (Ap t1 t2) = freeAndboundVarsAux freeVars boundVars t1 `concat_tuples` freeAndboundVarsAux freeVars boundVars t2
 \end{lstlisting}
 
+\clearpage
 
+\subsection{Funcions principals}
+
+La funció \textbf{freeAndboundVars}, crida a la funció \textbf{freeAndboundVarsAux} com una funció d'ordre superior, inicialitzant dues llistes buides.
+
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
+-- freeAndboundVars, donat un LT retorna una tupla amb una llista de freeVars i una llista de boundVars
+freeAndboundVars :: LT -> ([String],[String])
+freeAndboundVars = freeAndboundVarsAux [] []
+\end{lstlisting}
+
+La subst \textbf{freeAndboundVars}, 
 
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
@@ -129,9 +197,12 @@ subst :: LT -> Substitucio -> LT
 subst (Va a) (Sub v t') | a == v = t'
                         | otherwise = Va a
 subst (Ap t1 t2) (Sub v t') = Ap (subst t1 (Sub v t')) (subst t2 (Sub v t'))
-subst (Ab a t1) (Sub v t') | [x |x <- (fst (freeAndboundVars t')), y <- (snd (freeAndboundVars (Ab a t1))), x == y] == [] = 
-                                if a == v then Ab (get_var t') (subst t1 (Sub v t')) else Ab a (subst t1 (Sub v t'))
+subst (Ab a t1) (Sub v t') | a == v = if is_var t' then Ab (get_var t') (subst t1 (Sub v t')) else Ab a t1
+                           | a /= v && a `notElem` fst (freeAndboundVars t') = Ab a (subst t1 (Sub v t'))
+                           | a /= v && a `elem` fst (freeAndboundVars t') = subst (alfa_conv t1 t' a (a ++ "\'")) (Sub v t')
                            | otherwise = Ab a t1
+    where alfa_conv t1 t' v' v'' | v'' `notElem` fst (freeAndboundVars t') && v'' `notElem` fst (freeAndboundVars t1) = Ab v'' (subst t1 (Sub v' (Va v'')))
+                                 | otherwise = alfa_conv t1 t' v' (v'' ++ "\'")
 \end{lstlisting}
 
 
@@ -185,6 +256,9 @@ redueix_un_a (Ab x t) = Ab x (redueix_un_a t)
 \begin{lstlisting}[frame=mystyle]
 -- l_normalitza_n, rep un LT, i retorna una llista de LT's que sigui una sequencia de beta-reduccions, segons l'ordre normal
 l_normalitza_n :: LT -> [LT]
+l_normalitza_n t | esta_normal t = t:[]
+                 | otherwise = t:l_normalitza_n t'
+    where t' = redueix_un_n t
 \end{lstlisting}
 
 
@@ -193,6 +267,9 @@ l_normalitza_n :: LT -> [LT]
 \begin{lstlisting}[frame=mystyle]
 -- l_normalitza_a, rep un LT, i retorna una llista de LT's que sigui una sequencia de beta-reduccions, segons l'ordre aplicatiu
 l_normalitza_a :: LT -> [LT]
+l_normalitza_a t | esta_normal t = t:[]
+                 | otherwise = t:l_normalitza_a t'
+    where t' = redueix_un_a t
 \end{lstlisting}
 
 
@@ -201,6 +278,13 @@ l_normalitza_a :: LT -> [LT]
 \begin{lstlisting}[frame=mystyle]
 -- normalitza_n, rep un LT, i retorna una tupla amb el nombre de passos, mes el LT en forma normal, seguint l'ordre normal
 normalitza_n :: LT -> (Int,LT)
+normalitza_n = normalitza_n_aux 0
+
+-- normalitza_n_aux, funcio auxiliar cridada per normalitza_n
+normalitza_n_aux :: Int -> LT -> (Int,LT)
+normalitza_n_aux n t | esta_normal t = (n,t)
+                     | otherwise = (n+1,snd (normalitza_n_aux (n+1) t'))
+    where t' = redueix_un_n t
 \end{lstlisting}
 
 
@@ -211,11 +295,13 @@ normalitza_n :: LT -> (Int,LT)
 normalitza_a :: LT -> (Int,LT)
 \end{lstlisting}
 
-
+\clearpage
 
 \section{Extra: Notació \textit{de Bruijn}}
 
-Per \textbf{la notació de Bruijn} hem definit un altre tipus de dades, que tambe es instancia de les classes \textbf{Show} i \textbf{Eq}.
+\subsection{Tipus}
+
+Per \textbf{la notació de Bruijn} hem definit un altre tipus de dades, que també és instància de les classes \textbf{Show} i \textbf{Eq}, igual que abans, l'únic que canvia en aquest tipus, és que ja no tenim variables en les $\lambda$-abstraccions, i les variables que abans eren cadenes de text, ara són enters, més concretament és la distància de cada variable en lambdes.
 
 \begin{lstlisting}[language=Haskell]
 data LTdB = VadB Int | ApdB LTdB LTdB | AbdB LTdB
@@ -233,5 +319,19 @@ instance Eq LTdB where
     (==) (AbdB t1) (AbdB t2) = t1 == t2
     (==) _ _ = False
 \end{lstlisting}
+
+També hem hagut de definir un Context.
+
+\begin{lstlisting}[language=Haskell]
+type Context = String
+\end{lstlisting}
+
+\clearpage
+
+\subsection{Funcions auxiliars}
+
+\clearpage
+
+\subsection{Funcions principals}
 
 \end{document}

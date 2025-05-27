@@ -88,12 +88,6 @@ freeAndboundVarsAux freeVars boundVars (Va a) | a `elem` boundVars = (freeVars,b
 freeAndboundVarsAux freeVars boundVars (Ab a t1) = freeAndboundVarsAux freeVars (a:boundVars) t1
 freeAndboundVarsAux freeVars boundVars (Ap t1 t2) = freeAndboundVarsAux freeVars boundVars t1 `concat_tuples` freeAndboundVarsAux freeVars boundVars t2
 
--- ltPertanyA, funció que diu si un LT conté variables presents en una llista
-ltPertanyA :: LT -> [String] -> Bool
-ltPertanyA (Va a) l = a `elem` l
-ltPertanyA (Ab _ t1) l = ltPertanyA t1 l
-ltPertanyA (Ap t1 t2) l = (&&) (ltPertanyA t1 l) (ltPertanyA t2 l)
-
 -- Funcions principals
 
 -- freeAndboundVars, donat un LT retorna una tupla amb una llista de freeVars i una llista de boundVars
