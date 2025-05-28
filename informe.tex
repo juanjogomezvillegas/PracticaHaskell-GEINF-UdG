@@ -395,6 +395,145 @@ normalitza_a t = (llargada (lpassos t),last (lpassos t))
 
 \clearpage
 
+\subsection{Definicions del meta-llenguatge}
+
+Com ja hem anat veient, hem implementat les definicions del meta-llenguatge vistes a teoria, i totes s'han implementat seguint el mateix esquema, i com el tipus LT és instància de la classe Show, llavors es poden visualitzar igual que a teoria.
+
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
+-- identitat
+iden :: LT
+iden = Ab "x" (Va "x")
+-- true
+true :: LT
+true = Ab "x" (Ab "y" (Va "x"))
+-- false
+false :: LT
+false = Ab "x" (Ab "y" (Va "y"))
+-- not
+notDef :: LT
+notDef = Ab "t" (Ap false true)
+-- condicional
+cond :: LT
+cond = Ab "e" (Ab "e1" (Ab "e2" (Ap (Ap (Va "e") (Va "e1")) (Va "e2"))))
+
+-- and, or i xor
+andDef :: LT
+andDef = Ab "x" (Ab "y" (Ap (Ap (Ap cond (Va "x")) (Va "y")) false))
+orDef :: LT
+orDef = Ab "x" (Ab "y" (Ap (Ap (Ap cond (Va "x")) true) (Va "y")))
+xorDef :: LT
+xorDef = Ab "x" (Ab "y" (Ap (Ap (Ap cond (Va "x")) (Ap notDef (Va "y"))) (Va "y")))
+
+-- tupla, first i second
+tupla :: LT
+tupla = Ab "x" (Ab "y" (Ab "p" (Ap (Ap (Va "p") (Va "x")) (Va "y"))))
+first :: LT
+first = Ab "x" (Ap (Va "x") true)
+second :: LT
+second = Ab "x" (Ap (Va "x") false)
+\end{lstlisting}
+
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
+-- successor
+succDef :: LT
+succDef = Ab "n" (Ab "f" (Ab "x" (Ap (Ap (Va "n") (Va "f")) (Ap (Va "f") (Va "x")))))
+
+-- predecessor
+prefn :: LT
+prefn = Ab "f" (Ab "p" (Ap (Ap tupla false) (Ap (Ap (Ap cond (Ap first (Va "p"))) (Ap second (Va "p"))) (Ap (Va "f") (Ap second (Va "p"))))))
+prec :: LT
+prec = Ab "n" (Ab "f" (Ab "x" (Ap second (Ap (Ap (Va "n") (Ap prefn (Va "f"))) (Ap (Ap tupla true) (Va "x"))))))
+
+-- suma, producte i eszero
+suma :: LT
+suma = Ab "m" (Ab "n" (Ab "f" (Ab "x" (Ap (Ap (Va "m") (Va "f")) (Ap (Ap (Va "n") (Va "f")) (Va "x"))))))
+producte :: LT
+producte = Ab "m" (Ab "n" (Ab "f" (Ab "x" (Ap (Ap (Va "m") (Ap (Va "n") (Va "f"))) (Va "x")))))
+eszero :: LT
+eszero = Ab "n" (Ap (Ap (Va "n") (Ab "x" false)) true)
+\end{lstlisting}
+
+\clearpage
+
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
+-- combinadors G i G'
+g :: LT
+g = Ab "x" (Ap (Ab "y" (Ab "x" (Ap (Va "y") (Va "y")))) (Ab "y" (Ab "x" (Ap (Va "y") (Va "y")))))
+gprima :: LT
+gprima = Ab "x" (Ap (Va "x") (Ap (Ab "y" (Ab "x" (Ap (Va "x") (Ap (Va "y") (Va "y"))))) (Ab "y" (Ab "x" (Ap (Va "x") (Ap (Va "y") (Va "y")))))))
+
+-- combinadors de punt fixe
+y :: LT
+y = Ab "f" (Ap (Ab "x" (Ap (Va "f") (Ap (Va "x") (Va "x")))) (Ab "x" (Ap (Va "f") (Ap (Va "x") (Va "x")))))
+t :: LT
+t = Ap (Ab "x" (Ab "y" (Ap (Va "y") (Ap (Ap (Va "x") (Va "x")) (Va "y"))))) (Ab "x" (Ab "y" (Ap (Va "y") (Ap (Ap (Va "x") (Va "x")) (Va "y")))))
+\end{lstlisting}
+
+I també podem definir els naturals com.
+
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
+-- el zero
+zero :: LT
+zero = Ab "f" (Ab "x" (Va "x"))
+-- els successors de zero son els numeros majors que 0
+u :: LT
+u = snd (normalitza_n (Ap succDef zero))
+dos :: LT
+dos = snd (normalitza_n (Ap succDef (Ap succDef zero)))
+tres :: LT
+tres = snd (normalitza_n (Ap succDef (Ap succDef (Ap succDef zero))))
+\end{lstlisting}
+
+Finalment, també podem definir el factorial com, una funció tal que esperi per paràmetre un combinador de punt fixe ($T$ o $Y$), i calculi el factorial.
+
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
+factorial :: LT -> LT
+factorial cf = Ap cf (Ab "f" (Ab "n" (Ap (Ap (Ap cond (Ap eszero (Va "n"))) u) (Ap (Ap producte (Va "n")) (Ap (Va "f") (Ap prec (Va "n")))))))
+\end{lstlisting}
+
+\clearpage
+
+\subsection{Preguntes}
+
+\textbf{Fins a quin factorial podeu calcular en 1 minut de temps?} \\
+
+En un minut de temps podem fer fins al factorial de dos fent servir el combinador $T$.
+
+\begin{lstlisting}[language=Haskell]
+*Main> normalitza_n (Ap (factorial t) zero)
+(13,(\f. (\x. (f x))))
+*Main> normalitza_n (Ap (factorial t) u)
+(60,(\f. (\x. (f x))))
+*Main> normalitza_n (Ap (factorial t) dos)
+(434,(\f. (\x. (f (f x)))))
+\end{lstlisting}
+
+I també fins al dos fent servir el combinador $Y$. Els dos fent servir l'ordre normal, ja que amb l'ordre aplicatiu entra en bucle.
+
+\begin{lstlisting}[language=Haskell]
+*Main> normalitza_n (Ap (factorial y) zero)
+(13,(\f. (\x. (f x))))
+*Main> normalitza_n (Ap (factorial y) u)
+(59,(\f. (\x. (f x))))
+*Main> normalitza_n (Ap (factorial y) dos)
+(430,(\f. (\x. (f (f x)))))
+\end{lstlisting}
+
+\textbf{Podeu mirar de fer les funcions de $\beta$-reducció més eficients?} \\
+
+Sí. \\
+
+\textbf{Se us acudeix alguna noció d’ordre entre LT per tal de poder fer el tipus LT instància d’Ord?} \\
+
+Una possible noció d'ordre entre $\lambda$-termes podria ser el nombre de lambdes, i seria molt senzill de calcular, ja que només caldria obtenir la llargada de la llista de variables lligades del terme, perquè si és una variable lligada és perquè hi ha una $\lambda$ que la lliga, per tant, podria ser una noció d'ordre.
+
+\clearpage
+
 \section{Extra: Notació \textit{de Bruijn}}
 
 \subsection{Tipus}
@@ -418,11 +557,13 @@ instance Eq LTdB where
     (==) _ _ = False
 \end{lstlisting}
 
-També hem hagut de definir un Context.
+També hem hagut de definir un \textbf{Context} per convertir un $\lambda$-terme clàssic a notació de Bruijn, i l'hem definit com.
 
 \begin{lstlisting}[language=Haskell]
-type Context = String
+type Context = [(String,Int)]
 \end{lstlisting}
+
+L'explicació de per què un \textbf{Context} és una llista de tuples de cadenes de caràcters i enters, és que d'aquesta manera cada $\lambda$-terme tindrà una llista amb una tupla per cada variable, on hi haurà la relació entre el nom de la variable (primera posició de la tupla) amb la posició o distància en lambdes (segona posició de la tupla), de forma semblant a un map que mapeji noms de variables cap a enters.
 
 \clearpage
 
@@ -431,5 +572,15 @@ type Context = String
 \clearpage
 
 \subsection{Funcions principals}
+
+\begin{lstlisting}[language=Haskell]
+-- a_deBruijn, funcio que rep un LT i un Context, i el passa a LTdB
+a_deBruijn :: LT -> Context -> LTdB
+\end{lstlisting}
+
+\begin{lstlisting}[language=Haskell]
+-- de_deBruijn, funcio que rep un LTdB i el passa a LT
+de_deBruijn :: LTdB -> LT
+\end{lstlisting}
 
 \end{document}

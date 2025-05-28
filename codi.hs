@@ -43,7 +43,7 @@ instance Eq LTdB where
 data Substitucio = Sub String LT
 
 -- definim un context per la notació de bruijn
-type Context = String
+type Context = [(String,Int)]
 
 -- Funcions auxiliars
 
@@ -169,17 +169,17 @@ false = Ab "x" (Ab "y" (Va "y"))
 notDef :: LT
 notDef = Ab "t" (Ap false true)
 
-cond :: LT -> LT -> LT -> LT
-cond e e1 e2 = Ap (Ap e e1) e2
+cond :: LT
+cond = Ab "e" (Ab "e1" (Ab "e2" (Ap (Ap (Va "e") (Va "e1")) (Va "e2"))))
 
 andDef :: LT
-andDef = Ab "x" (Ab "y" (cond (Va "x") (Va "y") false))
+andDef = Ab "x" (Ab "y" (Ap (Ap (Ap cond (Va "x")) (Va "y")) false))
 
 orDef :: LT
-orDef = Ab "x" (Ab "y" (cond (Va "x") true (Va "y")))
+orDef = Ab "x" (Ab "y" (Ap (Ap (Ap cond (Va "x")) true) (Va "y")))
 
 xorDef :: LT
-xorDef = Ab "x" (Ab "y" (cond (Va "x") (Ap notDef (Va "y")) (Va "y")))
+xorDef = Ab "x" (Ab "y" (Ap (Ap (Ap cond (Va "x")) (Ap notDef (Va "y"))) (Va "y")))
 
 tupla :: LT
 tupla = Ab "x" (Ab "y" (Ab "p" (Ap (Ap (Va "p") (Va "x")) (Va "y"))))
@@ -194,10 +194,10 @@ succDef :: LT
 succDef = Ab "n" (Ab "f" (Ab "x" (Ap (Ap (Va "n") (Va "f")) (Ap (Va "f") (Va "x")))))
 
 prefn :: LT
-prefn = Ab "f" (Ab "p" (Ab "p" (Ap (Ap (Va "p") false) (cond (Ap first (Va "p")) (Ap second (Va "p")) (Ap (Va "f") (Ap second (Va "p")))))))
+prefn = Ab "f" (Ab "p" (Ap (Ap tupla false) (Ap (Ap (Ap cond (Ap first (Va "p"))) (Ap second (Va "p"))) (Ap (Va "f") (Ap second (Va "p"))))))
 
 prec :: LT
-prec = Ab "n" (Ab "f" (Ab "x" (Ap second (Ap (Ap (Va "n") (Ap (prefn) (Va "f"))) (Ab "p" (Ap (Ap (Va "p") true) (Va "x")))))))
+prec = Ab "n" (Ab "f" (Ab "x" (Ap second (Ap (Ap (Va "n") (Ap prefn (Va "f"))) (Ap (Ap tupla true) (Va "x"))))))
 
 suma :: LT
 suma = Ab "m" (Ab "n" (Ab "f" (Ab "x" (Ap (Ap (Va "m") (Va "f")) (Ap (Ap (Va "n") (Va "f")) (Va "x"))))))
@@ -219,6 +219,22 @@ y = Ab "f" (Ap (Ab "x" (Ap (Va "f") (Ap (Va "x") (Va "x")))) (Ab "x" (Ap (Va "f"
 
 t :: LT
 t = Ap (Ab "x" (Ab "y" (Ap (Va "y") (Ap (Ap (Va "x") (Va "x")) (Va "y"))))) (Ab "x" (Ab "y" (Ap (Va "y") (Ap (Ap (Va "x") (Va "x")) (Va "y")))))
+
+factorial :: LT -> LT
+factorial cf = Ap cf (Ab "f" (Ab "n" (Ap (Ap (Ap cond (Ap eszero (Va "n"))) u) (Ap (Ap producte (Va "n")) (Ap (Va "f") (Ap prec (Va "n")))))))
+
+-- naturals
+zero :: LT
+zero = Ab "f" (Ab "x" (Va "x"))
+
+u :: LT
+u = snd (normalitza_n (Ap succDef zero))
+
+dos :: LT
+dos = snd (normalitza_n (Ap succDef (Ap succDef zero)))
+
+tres :: LT
+tres = snd (normalitza_n (Ap succDef (Ap succDef (Ap succDef zero))))
 
 -- Funció principal
 
