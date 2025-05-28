@@ -103,7 +103,7 @@ subst :: LT -> Substitucio -> LT
 subst (Va a) (Sub v t') | a == v = t'
                         | otherwise = Va a
 subst (Ap t1 t2) (Sub v t') = Ap (subst t1 (Sub v t')) (subst t2 (Sub v t'))
-subst (Ab a t1) (Sub v t') | a == v = if is_var t' then Ab (get_var t') (subst t1 (Sub v t')) else Ab a t1
+subst (Ab a t1) (Sub v t') | a == v = Ab a t1
                            | a /= v && a `notElem` fst (freeAndboundVars t') = Ab a (subst t1 (Sub v t'))
                            | a /= v && a `elem` fst (freeAndboundVars t') = subst (alfa_conv t1 t' a (a ++ "\'")) (Sub v t')
                            | otherwise = Ab a t1
