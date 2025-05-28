@@ -125,27 +125,32 @@ redueix_un_a (Ap m n) | conte_redex m = Ap (redueix_un_a m) n
                       | otherwise = Ap m n
 redueix_un_a (Ab x t) = Ab x (redueix_un_a t)
 
+-- l_normalitza, funció d'ordre superior que evita la repetició de codi entra la forma normal i l'aplicatiu
+l_normalitza :: (LT -> LT) -> LT -> [LT]
+l_normalitza f t | esta_normal t = t:[]
+                 | otherwise = t:l_normalitza f t'
+    where t' = f t
+
 -- l_normalitza_n, rep un LT, i retorna una llista de LT's que sigui una seqüència de beta-reduccions, segons l'ordre normal
 l_normalitza_n :: LT -> [LT]
-l_normalitza_n t | esta_normal t = t:[]
-                 | otherwise = t:l_normalitza_n t'
-    where t' = redueix_un_n t
+l_normalitza_n = l_normalitza (redueix_un_n)
 
 -- l_normalitza_a, rep un LT, i retorna una llista de LT's que sigui una seqüència de beta-reduccions, segons l'ordre aplicatiu
 l_normalitza_a :: LT -> [LT]
-l_normalitza_a t | esta_normal t = t:[]
-                 | otherwise = t:l_normalitza_a t'
-    where t' = redueix_un_a t
+l_normalitza_a = l_normalitza (redueix_un_a)
+
+-- normalitza, funció d'ordre superior que evita la repetició de codi entra la forma normal i l'aplicatiu
+normalitza :: (LT -> [LT]) -> LT -> (Int, LT)
+normalitza f t = (llargada (lpassos t),last (lpassos t))
+    where lpassos = f
 
 -- normalitza_n, rep un LT, i retorna una tupla amb el nombre de passos, més el LT en forma normal, seguint l'ordre normal
 normalitza_n :: LT -> (Int, LT)
-normalitza_n t = (llargada (lpassos t),last (lpassos t))
-    where lpassos = l_normalitza_n
+normalitza_n = normalitza (l_normalitza_n)
 
 -- normalitza_a, rep un LT, i retorna una tupla amb el nombre de passos, més el LT en forma normal, seguint l'ordre aplicatiu
 normalitza_a :: LT -> (Int, LT)
-normalitza_a t = (llargada (lpassos t),last (lpassos t))
-    where lpassos = l_normalitza_a
+normalitza_a = normalitza (l_normalitza_a)
 
 -- Extra: Notació de Bruijn
 
