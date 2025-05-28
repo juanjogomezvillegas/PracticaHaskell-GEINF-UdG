@@ -48,7 +48,7 @@
         %	TITLE SECTION
         %----------------------------------------------------------------------------------------
         \HRule \\[0.4cm]
-        { \huge \bfseries PAC4} \\[0.4cm] % Title of your document
+        { \huge \bfseries Pràctica de Lambda-càlcul amb Haskell} \\[0.4cm] % Title of your document
 {Juan José Gómez Villegas, \href{mailto:u1987338@campus.udg.edu}{u1987338@campus.udg.edu}} \\ {Guillem Pozo Sebastián, \href{mailto:u1972840@campus.udg.edu}{u1972840@campus.udg.edu}}
         \HRule \\\vfill
         \begin{minipage}{0.4\textwidth}
@@ -201,7 +201,7 @@ subst :: LT -> Substitucio -> LT
 subst (Va a) (Sub v t') | a == v = t'
                         | otherwise = Va a
 subst (Ap t1 t2) (Sub v t') = Ap (subst t1 (Sub v t')) (subst t2 (Sub v t'))
-subst (Ab a t1) (Sub v t') | a == v = if is_var t' then Ab (get_var t') (subst t1 (Sub v t')) else Ab a t1
+subst (Ab a t1) (Sub v t') | a == v = Ab a t1
                            | a /= v && a `notElem` fst (freeAndboundVars t') = Ab a (subst t1 (Sub v t'))
                            | a /= v && a `elem` fst (freeAndboundVars t') = subst (alfa_conv t1 t' a (a ++ "\'")) (Sub v t')
                            | otherwise = Ab a t1
