@@ -1,3 +1,7 @@
 *.synctex.*
 *.txt
 informe.pdf
+*.aux
+*.log
+*.out
+*.toc

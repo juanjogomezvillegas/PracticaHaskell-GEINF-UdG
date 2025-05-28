@@ -176,23 +176,41 @@ True
 False 
 \end{lstlisting}
 
-Les següents funcions ajuden a implementar la funció \textbf{subst}.
+\clearpage
+
+La següent funció és una funció auxiliar que donades dues llistes de cadenes de caràcters i un $\lambda$-terme, retorna una tupla amb dues llistes de cadenes de caràcters, la funció és diu \textbf{freeAndboundVarsAux}, i amb el nom ja es pot saber el que retornarà, és a dir, \textbf{retornarà una tupla}, on \textbf{la primera llista són les variables lliures} del terme, i \textbf{la segona llista són les variables lligades}. Dir que l'ordre en que s'han definit els paràmetres és molt important, perquè això ens permetra definir la funció principal \textbf{freeAndboundVars} com una funció d'ordre superior.
 
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
--- is_var, funcio que diu si un LT es una variable
-is_var :: LT -> Bool
-is_var (Va _) = True
-is_var _ = False
-
--- get_var, donat una variable d'un lambda terme retorna la variable com un string
-get_var :: LT -> String
-get_var (Va a) = a
-get_var (Ab a _) = a
-get_var (Ap t1 _) = get_var t1
+-- freeAndboundVarsAux, funcio que construeix una tupla amb dues llistes que continguin les variables lliures (first) i lligades (second)
+freeAndboundVarsAux :: [String] -> [String] -> LT -> ([String],[String])
+freeAndboundVarsAux freeVars boundVars (Va a) | a `elem` boundVars = (freeVars,boundVars)
+                                              | otherwise = (a:freeVars,boundVars)
+freeAndboundVarsAux freeVars boundVars (Ab a t1) = freeAndboundVarsAux freeVars (a:boundVars) t1
+freeAndboundVarsAux freeVars boundVars (Ap t1 t2) = freeAndboundVarsAux freeVars boundVars t1 `concat_tuples` freeAndboundVarsAux freeVars boundVars t2
 \end{lstlisting}
 
-I les següents funcions ajuden a implementar la funció auxiliar que retorna les variables lliures i lligades d'un terme qualsevol. La funció \textbf{eliminar\_duplicats}, donada una llista de variables, retorna la mateixa llista sense repetits, això soluciona un error trobar implementant la funció \textbf{freeAndboundVarsAux} en què les variables sortien repetides. I la funció \textbf{concat\_tuples} s'utilitza en la mateixa funció, en el cas que el terme entrat sigui una aplicació.
+Pels exemples d'execució podem fer servir la identitat, o el combinador $G = (\lambda_x ((\lambda_y (\lambda_x  y y)) (\lambda_y (\lambda_x  y y))))$, també definit en el codi.
+
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
+*Main> freeAndboundVarsAux [] [] iden
+([],["x"])
+*Main> freeAndboundVarsAux [] [] g
+([],["y","x"])
+\end{lstlisting}
+
+De forma més senzilla també podem fer servir la funció \textbf{freeAndboundVars}.
+
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
+*Main> freeAndboundVars iden
+([],["x"])
+*Main> freeAndboundVars g
+([],["y","x"])
+\end{lstlisting}
+
+Les següents funcions són sobre llistes, algunes s'ha fet servir la funció \textbf{foldr} perquè era igual començar pel primer o per l'últim element. En el cas de \textbf{eliminar\_duplicats}, l'element neutre (cas base) és la llista buida, en una llista buida segur que no hi han repetits, perquè està buida, i el cas recursiu fent servir les lambdes és si el primer element pertany a la resta, retorna la cua, altrament retorna el primer element seguit de la cua. En el cas de \textbf{llargada}, l'element neutre és 0 i va sumant 1 per cada element de la llista. I en el cas de \textbf{concat\_tuples}, donades dues tuples, p.e. $(a,b)$ i $(c,d)$, concatenarà el primer element de la primera tupla amb el primer de la segona, i el segon element de la primera amb el segon element de la segona, és a dir, retornarà $(a+c.b+d)$, aquesta és útil per la funció auxiliar vista anteriorment, en el cas de l'aplicació.
 
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
@@ -209,23 +227,25 @@ llargada :: [a] -> Int
 llargada = foldr (\_ y -> 1+y) 0
 \end{lstlisting}
 
-La següent funció a partir d'un $\lambda$-terme qualsevol, retorna una tupla amb dues llistes: primer una llista amb les variables lliures, segon una llista amb les variables lligades.
+Exemples d'execució:
 
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
--- freeAndboundVarsAux, funcio que construeix una tupla amb dues llistes que continguin les variables lliures (first) i lligades (second)
-freeAndboundVarsAux :: [String] -> [String] -> LT -> ([String],[String])
-freeAndboundVarsAux freeVars boundVars (Va a) | a `elem` boundVars = (freeVars,boundVars)
-                                              | otherwise = (a:freeVars,boundVars)
-freeAndboundVarsAux freeVars boundVars (Ab a t1) = freeAndboundVarsAux freeVars (a:boundVars) t1
-freeAndboundVarsAux freeVars boundVars (Ap t1 t2) = freeAndboundVarsAux freeVars boundVars t1 `concat_tuples` freeAndboundVarsAux freeVars boundVars t2
+*Main> concat_tuples ("a","b") ("c","d")
+("ac","bd")
+*Main> eliminar_duplicats ["a","a","a","b","c","c"]
+["a","b","c"]
+*Main> llargada (l_normalitza_n (Ap iden (Va "a")))
+2
 \end{lstlisting}
+
+Cadascuna d'aquestes funcions soluciona problemes trobats en la implementació de les funcions principals, concat\_tuples a la funció freeAndboundVars, eliminar\_duplicats soluciona un problema a la mateixa funció (freeAndboundVars), on les variables lliures o lligades sortien repetides, i tal com es veu, la funció llargada es fa servir a la funció normalitza\_n i normalitza\_a.
 
 \clearpage
 
 \subsection{Funcions principals}
 
-La funció \textbf{freeAndboundVars}, crida a la funció \textbf{freeAndboundVarsAux} com una funció d'ordre superior, inicialitzant dues llistes buides.
+La funció \textbf{freeAndboundVars}, crida a la funció \textbf{freeAndboundVarsAux} com una funció d'ordre superior, inicialitzant dues llistes buides (una per variables lliures i l'altre per variables lligades), i fa servir la funció \textbf{freeAndboundVarsAux}, explicada anteriorment.
 
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
@@ -234,7 +254,7 @@ freeAndboundVars :: LT -> ([String],[String])
 freeAndboundVars = freeAndboundVarsAux [] []
 \end{lstlisting}
 
-La subst \textbf{freeAndboundVars}, 
+Potser la funció més interessant sigui la funció \textbf{subst}, que donat un terme i una substitució retorna un terme al qual se li ha aplicat la substitució, és a dir, és la implementació en codi Haskell del que a teoria era $M [v \rightarrow M']$, i el codi està basat en la transparència 10 de les transparències de teoria. Si és una variable, fem la substitució si la forma de $M$ és $v$, si és una aplicació, fem la substitució per separat, si és una abstracció: sí la forma de $M$ és $\lambda_v M_1$ llavors no fem res, però si és $\lambda_a M_1$ per $a \neq v$, aquí és on hem de tenir precaució de no capturar cap variable lliure, llavors sí la variable de la lambda no pertany a les variables lliures de $M'$, fem la substitució, altrament si pertany a les variables lliures de $M'$, hem de fer la $\alpha$-conversió abans de fer la substitució que volem fer, i la $\alpha$-conversió l'hem definit com, anem afegint primes a la variable de la lambda fins que aquesta estigui lliure a $M'$ i a $M$.
 
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
@@ -251,7 +271,19 @@ subst (Ab a t1) (Sub v t') | a == v = Ab a t1
                                  | otherwise = alfa_conv t1 t' v' (v'' ++ "\'")
 \end{lstlisting}
 
+Exemples d'execució, donat el terme $(\lambda_x x y) [y \rightarrow z] = \lambda_x x z)$, però $(\lambda_x x y) [x \rightarrow y] = \lambda_x x y)$, la substitució només substitueix variables lliures, per això en la segona substitució queda igual. Un altre exemple és $(\lambda_x x y) [y \rightarrow x] = \lambda_{x'} {x'} x)$.
 
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
+*Main> subst (Ab "x" (Ap (Va "x") (Va "y"))) (Sub "y" (Va "z"))
+(\x. (x z))
+*Main> subst (Ab "x" (Ap (Va "x") (Va "y"))) (Sub "x" (Va "y"))
+(\x. (x y))
+*Main> subst (Ab "x" (Ap (Va "x") (Va "y"))) (Sub "y" (Va "x"))
+(\x'. (x' x))
+\end{lstlisting}
+
+A partir d'aquí, la següent funció és \textbf{esta\_normal}, el que ens diu és si un $\lambda$-terme qualsevol està en forma normal, és a dir, que no conté cap redex. Per tant, la podem definir com la composició de la funció not amb conte\_redex, com que es llegeix de dreta a esquerra primer avaluaria la funció conte\_redex, que si està en forma normal retornarà fals, i després el not retornarà cert.
 
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
@@ -260,7 +292,19 @@ esta_normal :: LT -> Bool
 esta_normal = not . conte_redex
 \end{lstlisting}
 
+Exemples d'execució són els següents, amb les definicions de la identitat i del combinador G.
 
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
+*Main> esta_normal iden
+True
+*Main> esta_normal g
+False
+\end{lstlisting}
+
+\clearpage
+
+La funció \textbf{beta\_redueix}, igual que es\_redex, busca que el terme tingui la forma d'un redex, per fer la substitució com $t1 [a \rightarrow t2]$, si el terme comença amb una abstracció crida a la mateixa funció beta\_redueix amb el terme $t$ de dins seu, i finalment, per qualsevol altre terme retorna el mateix terme.
 
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
@@ -271,7 +315,23 @@ beta_redueix (Ab _ t) = beta_redueix t
 beta_redueix t = t
 \end{lstlisting}
 
+Exemples d'execució són els següents, amb la definició del combinador $Y$, com $Y F$, que com es un combinador de punt fixe el resultat serà $F (Y F)$.
 
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
+*Main> (Ap y (Va "F"))
+((\f. ((\x. (f (x x))) (\x. (f (x x))))) F)
+*Main> beta_redueix (Ap y (Va "F"))
+((\x. (F (x x))) (\x. (F (x x))))
+*Main> beta_redueix (Ap (Ab "x" (Ap (Va "F") (Ap (Va "x") (Va "x")))) (Ab "x" (Ap (Va "F") (Ap (Va "x") (Va "x")))))
+(F ((\x. (F (x x))) (\x. (F (x x)))))
+\end{lstlisting}
+
+Per tant, podem simular la recursivitat.
+
+\clearpage
+
+Les següents funcions són simètriques, són les funcions redueix\_un\_n, l\_normalitza\_n i normalitza\_n (ordre normal) i redueix\_un\_a, l\_normalitza\_a i normalitza\_a (ordre aplicatiu).
 
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
@@ -283,8 +343,6 @@ redueix_un_n (Ap m n) | es_redex (Ap m n) = beta_redueix (Ap m n)
                       | otherwise = Ap m n
 redueix_un_n (Ab x t) = Ab x (redueix_un_n t)
 \end{lstlisting}
-
-
 
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
@@ -308,8 +366,6 @@ l_normalitza_n t | esta_normal t = t:[]
     where t' = redueix_un_n t
 \end{lstlisting}
 
-
-
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
 -- l_normalitza_a, rep un LT, i retorna una llista de LT's que sigui una sequencia de beta-reduccions, segons l'ordre aplicatiu
@@ -328,8 +384,6 @@ normalitza_n :: LT -> (Int, LT)
 normalitza_n t = (llargada (lpassos t),last (lpassos t))
     where lpassos = l_normalitza_n
 \end{lstlisting}
-
-
 
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
