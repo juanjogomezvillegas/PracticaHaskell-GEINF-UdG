@@ -73,7 +73,7 @@
 
 \subsection{Tipus}
 
-El tipus de dades \textbf{LT} ens permet representar $\lambda$-termes, i la definició és exactament la gramàtica que diu el que és un $\lambda$-terme, és a dir, un $\lambda$-terme és: una variable, una aplicació i una abstracció, res més és un $\lambda$-terme.
+El tipus de dades \textbf{LT} ens permet representar $\lambda$-termes, i la definició és exactament la gramàtica que diu el que és un $\lambda$-terme, és a dir, un $\lambda$-terme és: una variable (Va amb un String), una aplicació (Ap seguit de dos LT) i una abstracció (Ab amb un String i seguit d'un LT), res més és un $\lambda$-terme.
 
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
@@ -94,22 +94,42 @@ instance Eq LT where
     (==) _ _ = False
 \end{lstlisting}
 
-El \textbf{tipus LT} ha de ser instància de la classe \textbf{Show}, per tal que es pugui mostrar com nosaltres volguem, \textit{com diu a l'enunciat}, i ha de ser instància de la classe \textbf{Eq}, per tal de definir la idea d'equivalència de dos $\lambda$-termes, és a dir, dos $\lambda$-termes seran el mateix quan, siguin dues abstraccions i independentment de la variable, els seus $\lambda$-termes interns siguin iguals, quan siguin dues aplicacions i aquestes siguin iguals, quan siguin dos variables iguals. \\
+El \textbf{tipus LT} ha de ser instància de la classe \textbf{Show}, per tal que es pugui mostrar com nosaltres volguem, \textit{com diu a l'enunciat}, i ha de ser instància de la classe \textbf{Eq}, per tal de definir la idea d'equivalència de dos $\lambda$-termes, és a dir, dos $\lambda$-termes seran el mateix quan, siguin dues abstraccions i independentment de la variable, els seus $\lambda$-termes interns siguin iguals, quan siguin dues aplicacions i aquestes siguin iguals, i quan siguin dos variables iguals llevat de $\alpha$-conversió. \\
 
-També hem definit el tipus de dades \textbf{Substitució}, que \textbf{ens ha permès implementar la funció subst} tal com diu la teoria, és a dir, \textbf{com un operador que ens permet reemplaçar ocurrències de variables per termes, evitant captura de variables lliures}. Per tant, el tipus \textbf{Substitució} serà una variable $v$ que serà reemplaçada per un terme $M'$, sobre un terme $M$, definit a la funció \textbf{subst}, tot junt representarà: $M [v -> M']$.
+També hem definit el tipus de dades \textbf{Substitució}, que \textbf{ens ha permès implementar la funció subst} tal com diuen les transparències de teoria (transparència 10), és a dir, \textbf{com un operador que ens permet reemplaçar ocurrències de variables per termes, evitant captura de variables lliures}. Per tant, el tipus \textbf{Substitució} serà una variable $v$ que serà reemplaçada per un terme $M'$, sobre un terme $M$, definit a la funció \textbf{subst}, tot junt representarà: $M [v \rightarrow M']$. La substitució és només el que apareix entre claus `[' i `]', com (Sub seguit d'un String ($v$) i un LT ($M'$)).
 
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
 data Substitucio = Sub String LT
 \end{lstlisting}
 
+\subsection*{Exemples d'execució}
+
+A partir d'aquí ja podem fer proves d'execució, p.e. com definim el $\lambda$-terme: $\lambda_x \lambda_y x y$? Doncs el definim de la manera següent:
+
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
+*Main> (Ab "x" (Ab "y" (Ap (Va "x") (Va "y"))))
+(\x. (\y. (x y)))
+\end{lstlisting}
+
+Com comprovem que $\lambda_x x y$ és igual que $\lambda_x x z$, realment no són iguals, però podem aplicar la substitució en el segon $\lambda$-terme de la variable "z" per la variable "y".
+
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
+*Main> (Ab "x" (Ap (Va "x") (Va "y"))) == (Ab "x" (Ap (Va "x") (Va "z")))
+False
+*Main> (Ab "x" (Ap (Va "x") (Va "y"))) == (subst (Ab "x" (Ap (Va "x") (Va "z"))) (Sub "z" (Va "y")))
+True
+\end{lstlisting}
+
 \clearpage
 
 \subsection{Funcions auxiliars}
 
-Les següents funcions ens permeten implementar les funcions principals com funcions d'ordre superior. \\
+Les següents funcions ens permeten implementar les funcions principals de forma més fàcil i fins i tot com funcions d'ordre superior. \\
 
-La funció \textbf{es\_redex} ens diu si un $\lambda$-terme té la forma d'un redex, o no.
+La funció \textbf{es\_redex} ens diu si un $\lambda$-terme té la forma d'un redex, o no. p.e. donat un terme $(\lambda_x \lambda_y x) a b$, això és un redex, i també ho és $(\lambda_x \lambda_y x) (a b)$, però $\lambda_x x$ no és un redex, tot i que $(\lambda_x x) a$ sí que ho és. Aquesta estructura del que és un redex és el patró que fa que la funció retorni cert, si el terme no segueix aquest patró retorna fals, és a dir, la funció només comprovar que el terme inicial té l'estructura d'un redex, sense entrar-hi a dins.
 
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
@@ -119,7 +139,19 @@ es_redex (Ap (Ab _ _) _) = True
 es_redex _ = False
 \end{lstlisting}
 
-I per buscar redex en un $\lambda$-terme $T$, la funció \textbf{conte\_redex} ens diu si un terme qualsevol conté un redex a dins, \textbf{fent servir la funció es\_redex}, i funciona de la manera següent: Una variable no conté cap redex (retorna fals, cas base), una abstracció conté un redex, si i només si, el terme que conté a dins \textbf{és un redex}, i una aplicació conté un redex, si qualsevol dels dos termes de dins \textbf{són o contenen un redex}. Aquesta funció retorna cert si conté un redex, amb això ja podem simplificar el codi de les funcions principals.
+Els exemples els farem amb el terme $\lambda_x x$, que l'hem definit en el codi com \textbf{iden}, és a dir, \textbf{identitat}.
+
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
+*Main> iden
+(\x. x)
+*Main> es_redex iden
+False
+*Main> es_redex (Ap iden (Va "a"))
+True
+\end{lstlisting}
+
+Aquesta funció és molt útil, però encara més la següent que a partir d'aquesta funció (es\_redex), comprova si un terme conté un redex a dins, aquesta funció es diu \textbf{conte\_redex}, i aquesta sí que entra a dins del terme per comprovar, fent servir la funció es\_redex, si conté un redex, i funciona de la manera següent: Una variable no conté cap redex (retorna fals, cas base), una abstracció conté un redex, si i només si, el terme que conté a dins \textbf{és un redex}, o si no, si conté un redex més a dins, i una aplicació conté un redex, si qualsevol dels dos termes de dins \textbf{són o contenen un redex} més a dins. Amb aquesta funció hem pogut simplificar el codi de les funcions principals.
 
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
@@ -132,6 +164,16 @@ conte_redex (Ap t1 t2) | es_redex (Ap t1 t2) = True
                        | es_redex t1 = True
                        | es_redex t2 = True
                        | otherwise = conte_redex t1 || conte_redex t2
+\end{lstlisting}
+
+I continuant amb el terme \textbf{identitat}.
+
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
+*Main> conte_redex (Ap iden (Va "a"))
+True
+*Main> conte_redex iden
+False 
 \end{lstlisting}
 
 Les següents funcions ajuden a implementar la funció \textbf{subst}.

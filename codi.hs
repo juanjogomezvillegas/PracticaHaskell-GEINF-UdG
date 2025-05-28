@@ -62,17 +62,6 @@ conte_redex (Ap t1 t2) | es_redex (Ap t1 t2) = True
                        | es_redex t2 = True
                        | otherwise = conte_redex t1 || conte_redex t2
 
--- is_var, funció que diu si un LT és una variable
-is_var :: LT -> Bool
-is_var (Va _) = True
-is_var _ = False
-
--- get_var, donat una variable d'un lambda terme retorna la variable com un string
-get_var :: LT -> String
-get_var (Va a) = a
-get_var (Ab a _) = a
-get_var (Ap t1 _) = get_var t1
-
 -- eliminar_duplicats, funció que elimina els elements duplicats d'una llista
 eliminar_duplicats :: Eq a => [a] -> [a]
 eliminar_duplicats = foldr (\x xs -> if x `elem` xs then xs else x:xs) []
