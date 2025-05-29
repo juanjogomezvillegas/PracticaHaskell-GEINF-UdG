@@ -23,6 +23,7 @@ instance Eq LT where
     (==) _ _ = False
 
 instance Ord LT where
+    compare :: LT -> LT -> Ordering
     compare t1 t2 | get_depth t1 == get_depth t2 = EQ
                   | get_depth t1 <= get_depth t2 = LT
                   | otherwise = GT
