@@ -185,16 +185,18 @@ get_cont t = get_cont_aux ls 0 ++ get_cont_aux lf ((llargada ls) + 1)
     where lf = fst (freeAndboundVars t)
           ls = snd (freeAndboundVars t)
 
--- funcions principals
+-- mapeja_str_to_int, funció que mapeja una cadena de text (variable) cap a un enter (posició o distància en lambdes)
+mapeja :: Eq a => a -> [(a,b)] -> b
+mapeja a (t:ts) = if a == fst t then snd t else mapeja a ts
 
--- a_deBruijn_aux, funció auxiliar per afegir parametres si cal
-a_deBruijn_aux :: LT -> Context -> LTdB
-a_deBruijn_aux t c = AbdB (ApdB (VadB 0) (VadB 0))
+-- funcions principals
 
 -- a_deBruijn, funció que rep un LT i un Context, i el passa a LTdB
 -- p.e. a_deBruijn (Ab "x" (Va "x")) (get_cont (Ab "x" (Va "x")))
 a_deBruijn :: LT -> Context -> LTdB
-a_deBruijn = a_deBruijn_aux
+a_deBruijn (Va a) c = VadB (mapeja (head (filter (==a) (map fst c))) c)
+a_deBruijn (Ap t1 t2) c = ApdB (a_deBruijn t1 c) (a_deBruijn t2 c)
+a_deBruijn (Ab _ t) c = AbdB (a_deBruijn t c)
 
 -- de_deBruijn, funció que rep un LTdB i el passa a LT
 de_deBruijn :: LTdB -> LT
