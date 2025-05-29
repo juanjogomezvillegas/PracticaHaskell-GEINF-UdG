@@ -129,15 +129,15 @@ redueix_un f (Ab x t) = Ab x (redueix_un f t)
 redueix_un_n :: LT -> LT
 redueix_un_n = redueix_un casbase
     where casbase (Ap m n) | es_redex (Ap m n) = beta_redueix (Ap m n)
-                           | conte_redex m = Ap (redueix_un casbase m) n
-                           | conte_redex n = Ap m (redueix_un casbase n)
+                           | not (esta_normal m) = Ap (redueix_un casbase m) n
+                           | not (esta_normal n) = Ap m (redueix_un casbase n)
                            | otherwise = Ap m n
 
 -- redueix_un_a, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reducció segons l'ordre aplicatiu
 redueix_un_a :: LT -> LT
 redueix_un_a = redueix_un casbase
-    where casbase (Ap m n) | conte_redex m = Ap (redueix_un casbase m) n
-                           | conte_redex n = Ap m (redueix_un casbase n)
+    where casbase (Ap m n) | not (esta_normal m) = Ap (redueix_un casbase m) n
+                           | not (esta_normal n) = Ap m (redueix_un casbase n)
                            | es_redex (Ap m n) = beta_redueix (Ap m n)
                            | otherwise = Ap m n
 
@@ -171,10 +171,12 @@ normalitza_a = normalitza (l_normalitza_a)
 -- Extra: Notació de Bruijn
 
 -- a_deBruijn, funció que rep un LT i un Context, i el passa a LTdB
---a_deBruijn :: LT -> Context -> LTdB
+a_deBruijn :: LT -> Context -> LTdB
+a_deBruijn (Va _) c = (VadB 0)
 
 -- de_deBruijn, funció que rep un LTdB i el passa a LT
---de_deBruijn :: LTdB -> LT
+de_deBruijn :: LTdB -> LT
+de_deBruijn (VadB _) = (Va "a")
 
 -- Alguns combinadors i definicions del meta-llenguatge
 
@@ -256,6 +258,27 @@ dos = snd (normalitza_n (Ap succDef (Ap succDef zero)))
 
 tres :: LT
 tres = snd (normalitza_n (Ap succDef (Ap succDef (Ap succDef zero))))
+
+quatre :: LT
+quatre = snd (normalitza_n (Ap succDef tres))
+
+cinc :: LT
+cinc = snd (normalitza_n (Ap succDef quatre))
+
+sis :: LT
+sis = snd (normalitza_n (Ap succDef cinc))
+
+set :: LT
+set = snd (normalitza_n (Ap succDef sis))
+
+vuit :: LT
+vuit = snd (normalitza_n (Ap succDef set))
+
+nou :: LT
+nou = snd (normalitza_n (Ap succDef vuit))
+
+deu :: LT
+deu = snd (normalitza_n (Ap succDef nou))
 
 -- Funció principal
 

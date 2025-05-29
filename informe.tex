@@ -12,10 +12,14 @@
 
 \definecolor{backcolour}{rgb}{0.83, 0.83, 0.83}
 \definecolor{textcolour}{rgb}{0.0, 0.0, 0.0}
+\definecolor{keywordcolour}{rgb}{0.0, 0.0, 1.0}
+\definecolor{commentcolour}{rgb}{0.0, 0.5, 0.0}
 
 \lstdefinestyle{mystyle}{
     backgroundcolor=\color{backcolour},  
     basicstyle=\ttfamily\footnotesize\color{textcolour}, 
+    keywordstyle=\color{keywordcolour}, 
+    commentstyle=\color{commentcolour}, 
     breakatwhitespace=false, 
     breaklines=true,  
     captionpos=b, 
@@ -344,15 +348,15 @@ redueix_un f (Ab x t) = Ab x (redueix_un f t)
 redueix_un_n :: LT -> LT
 redueix_un_n = redueix_un casbase
     where casbase (Ap m n) | es_redex (Ap m n) = beta_redueix (Ap m n)
-                           | conte_redex m = Ap (redueix_un casbase m) n
-                           | conte_redex n = Ap m (redueix_un casbase n)
+                           | not (esta_normal m) = Ap (redueix_un casbase m) n
+                           | not (esta_normal n) = Ap m (redueix_un casbase n)
                            | otherwise = Ap m n
 
 -- redueix_un_a, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reduccio segons l'ordre aplicatiu
 redueix_un_a :: LT -> LT
 redueix_un_a = redueix_un casbase
-    where casbase (Ap m n) | conte_redex m = Ap (redueix_un casbase m) n
-                           | conte_redex n = Ap m (redueix_un casbase n)
+    where casbase (Ap m n) | not (esta_normal m) = Ap (redueix_un casbase m) n
+                           | not (esta_normal n) = Ap m (redueix_un casbase n)
                            | es_redex (Ap m n) = beta_redueix (Ap m n)
                            | otherwise = Ap m n
 \end{lstlisting}
@@ -530,6 +534,20 @@ dos :: LT
 dos = snd (normalitza_n (Ap succDef (Ap succDef zero)))
 tres :: LT
 tres = snd (normalitza_n (Ap succDef (Ap succDef (Ap succDef zero))))
+quatre :: LT
+quatre = snd (normalitza_n (Ap succDef tres))
+cinc :: LT
+cinc = snd (normalitza_n (Ap succDef quatre))
+sis :: LT
+sis = snd (normalitza_n (Ap succDef cinc))
+set :: LT
+set = snd (normalitza_n (Ap succDef sis))
+vuit :: LT
+vuit = snd (normalitza_n (Ap succDef set))
+nou :: LT
+nou = snd (normalitza_n (Ap succDef vuit))
+deu :: LT
+deu = snd (normalitza_n (Ap succDef nou))
 \end{lstlisting}
 
 Finalment, també podem definir el factorial com, una funció tal que esperi per paràmetre un combinador de punt fixe ($T$ o $Y$), i calculi i retorni el factorial.
@@ -570,7 +588,7 @@ I també fins al dos fent servir el combinador $Y$. Els dos fent servir l'ordre 
 
 \textbf{Podeu mirar de fer les funcions de $\beta$-reducció més eficients?} \\
 
-Sí. \\
+Sí, en la funció redueix\_un\_n i redueix\_un\_a, en la definició del cas base, es pot canviar la crida a \textbf{conte\_redex} per \textbf{not (esta\_normal)}. I podem fer servir map, allà on apliquem una funció per cada element d'una llista. En tot cas, si quan executem el factorial es penja, no podem saber si està encara fent $\beta$-reduccions o si s'ha penjat. \\
 
 \textbf{Se us acudeix alguna noció d’ordre entre LT per tal de poder fer el tipus LT instància d’Ord?} \\
 
