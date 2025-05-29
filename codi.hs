@@ -200,7 +200,7 @@ a_deBruijn (Ab _ t) c = AbdB (a_deBruijn t c)
 
 -- de_deBruijn, funció que rep un LTdB i el passa a LT
 de_deBruijn :: LTdB -> LT
-de_deBruijn (VadB _) = (Va "a")
+de_deBruijn (VadB a) = (Va "a")
 
 -- Alguns combinadors i definicions del meta-llenguatge
 
