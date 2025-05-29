@@ -176,9 +176,7 @@ True
 False 
 \end{lstlisting}
 
-\clearpage
-
-La següent funció és una funció auxiliar que donades dues llistes de cadenes de caràcters i un $\lambda$-terme, retorna una tupla amb dues llistes de cadenes de caràcters, la funció és diu \textbf{freeAndboundVarsAux}, i amb el nom ja es pot saber el que retornarà, és a dir, \textbf{retornarà una tupla}, on \textbf{la primera llista són les variables lliures} del terme, i \textbf{la segona llista són les variables lligades}. Dir que l'ordre en que s'han definit els paràmetres és molt important, perquè això ens permetra definir la funció principal \textbf{freeAndboundVars} com una funció d'ordre superior.
+La següent funció és una funció auxiliar que donades dues llistes de cadenes de caràcters i un $\lambda$-terme, retorna una tupla amb dues llistes de cadenes de caràcters, la funció és diu \textbf{freeAndboundVarsAux}, i amb el nom ja es pot saber el que retornarà, és a dir, \textbf{retornarà una tupla}, on \textbf{la primera llista són les variables lliures} del terme, i \textbf{la segona llista són les variables lligades}. Dir que l'ordre en que s'han definit els paràmetres és molt important, perquè això ens permetra definir la funció principal \textbf{freeAndboundVars} de forma més senzilla.
 
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
@@ -189,6 +187,8 @@ freeAndboundVarsAux freeVars boundVars (Va a) | a `elem` boundVars = (freeVars,b
 freeAndboundVarsAux freeVars boundVars (Ab a t1) = freeAndboundVarsAux freeVars (a:boundVars) t1
 freeAndboundVarsAux freeVars boundVars (Ap t1 t2) = freeAndboundVarsAux freeVars boundVars t1 `concat_tuples` freeAndboundVarsAux freeVars boundVars t2
 \end{lstlisting}
+
+\clearpage
 
 Pels exemples d'execució podem fer servir la identitat, o el combinador $G = (\lambda_x ((\lambda_y (\lambda_x  y y)) (\lambda_y (\lambda_x  y y))))$, també definit en el codi.
 
@@ -239,13 +239,13 @@ Exemples d'execució:
 2
 \end{lstlisting}
 
-Cadascuna d'aquestes funcions soluciona problemes trobats en la implementació de les funcions principals, concat\_tuples a la funció freeAndboundVars, eliminar\_duplicats soluciona un problema a la mateixa funció (freeAndboundVars), on les variables lliures o lligades sortien repetides, i tal com es veu, la funció llargada es fa servir a la funció normalitza\_n i normalitza\_a.
+Cadascuna d'aquestes funcions soluciona problemes trobats en la implementació de les funcions principals, concat\_tuples a la funció freeAndboundVarsAux, eliminar\_duplicats soluciona un problema a la mateixa funció (freeAndboundVarsAux), on les variables lliures o lligades sortien repetides, i tal com es veu, la funció llargada es fa servir a la funció normalitza.
 
 \clearpage
 
 \subsection{Funcions principals}
 
-La funció \textbf{freeAndboundVars}, crida a la funció \textbf{freeAndboundVarsAux} com una funció d'ordre superior, inicialitzant dues llistes buides (una per variables lliures i l'altre per variables lligades), i fa servir la funció \textbf{freeAndboundVarsAux}, explicada anteriorment.
+La funció \textbf{freeAndboundVars}, crida a la funció \textbf{freeAndboundVarsAux} inicialitzant dues llistes buides, i el terme $t$ no cal afegir-ho, ja que com hauria d'aparèixer al final de tot, Haskell ja entén que al final ha d'afegir un LT.
 
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
@@ -327,70 +327,88 @@ Exemples d'execució són els següents, amb la definició del combinador $Y$, c
 (F ((\x. (F (x x))) (\x. (F (x x)))))
 \end{lstlisting}
 
-Per tant, podem simular la recursivitat.
+Per tant, \textbf{podem simular la recursivitat}. \\
+
+Les següents funcions són simètriques, són les funcions redueix\_un\_n, l\_normalitza\_n i normalitza\_n (ordre normal) i redueix\_un\_a, l\_normalitza\_a i normalitza\_a (ordre aplicatiu), per això, i per cada una d'elles hem definit funcions d'ordre superior com: redueix\_un, l\_normalitza i normalitza. \\
+
+La funció redueix\_un (d'ordre superior), i redueix\_un\_n i redueix\_un\_a, aquí el codi era igual, l'única cosa que canviava era el cas base, i només canviava l'ordre de les guardes, per tant, la funció redueix\_un espera dos paràmetres, el cas base i un terme, si el terme és una aplicació crida al cas base amb el terme com a primer paràmetre, i si és una abstracció crida a la mateixa funció amb els mateixos paràmetres. Des de redueix\_un\_n i redueix\_un\_a només li passem el terme, i depèn de quina funció fem servir, en el cas base les guardes tindran un ordre o un altre.
+
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
+-- redueix_un, funcio d'ordre superior que evita la repeticio de codi entra la forma normal i l'aplicatiu
+redueix_un :: (LT -> LT) -> LT -> LT
+redueix_un f (Ap m n) = f (Ap m n)
+redueix_un f (Ab x t) = Ab x (redueix_un f t)
+
+-- redueix_un_n, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reduccio segons l'ordre normal
+redueix_un_n :: LT -> LT
+redueix_un_n = redueix_un casbase
+    where casbase (Ap m n) | es_redex (Ap m n) = beta_redueix (Ap m n)
+                           | conte_redex m = Ap (redueix_un casbase m) n
+                           | conte_redex n = Ap m (redueix_un casbase n)
+                           | otherwise = Ap m n
+
+-- redueix_un_a, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reduccio segons l'ordre aplicatiu
+redueix_un_a :: LT -> LT
+redueix_un_a = redueix_un casbase
+    where casbase (Ap m n) | conte_redex m = Ap (redueix_un casbase m) n
+                           | conte_redex n = Ap m (redueix_un casbase n)
+                           | es_redex (Ap m n) = beta_redueix (Ap m n)
+                           | otherwise = Ap m n
+\end{lstlisting}
+
+Exemples, podem provar de reduir el redex, $((\lambda_x \lambda_y x) a)$, primer en ordre normal (redueix\_un\_n), i després en ordre aplicatiu (redueix\_un\_a).
+
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
+*Main> redueix_un_n (Ap true (Va "a"))
+(\y. a)
+*Main> redueix_un_a (Ap true (Va "a"))
+(\y. a)
+\end{lstlisting}
 
 \clearpage
 
-Les següents funcions són simètriques, són les funcions redueix\_un\_n, l\_normalitza\_n i normalitza\_n (ordre normal) i redueix\_un\_a, l\_normalitza\_a i normalitza\_a (ordre aplicatiu).
+Amb les funcions l\_normalitza (d'ordre superior), l\_normalitza\_n, l\_normalitza\_a, 
 
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
--- redueix_un_n, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reduccio segons l'ordre normal
-redueix_un_n :: LT -> LT
-redueix_un_n (Ap m n) | es_redex (Ap m n) = beta_redueix (Ap m n)
-                      | conte_redex m = Ap (redueix_un_n m) n
-                      | conte_redex n = Ap m (redueix_un_n n)
-                      | otherwise = Ap m n
-redueix_un_n (Ab x t) = Ab x (redueix_un_n t)
-\end{lstlisting}
+-- l_normalitza, funcio d'ordre superior que evita la repeticio de codi entra la forma normal i l'aplicatiu
+l_normalitza :: (LT -> LT) -> LT -> [LT]
+l_normalitza f t | esta_normal t = t:[]
+                 | otherwise = t:l_normalitza f t'
+    where t' = f t
 
-\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
-\begin{lstlisting}[frame=mystyle]
--- redueix_un_a, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reduccio segons l'ordre aplicatiu
-redueix_un_a :: LT -> LT
-redueix_un_a (Ap m n) | conte_redex m = Ap (redueix_un_a m) n
-                      | conte_redex n = Ap m (redueix_un_a n)
-                      | es_redex (Ap m n) = beta_redueix (Ap m n)
-                      | otherwise = Ap m n
-redueix_un_a (Ab x t) = Ab x (redueix_un_a t)
-\end{lstlisting}
-
-
-
-\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
-\begin{lstlisting}[frame=mystyle]
 -- l_normalitza_n, rep un LT, i retorna una llista de LT's que sigui una sequencia de beta-reduccions, segons l'ordre normal
 l_normalitza_n :: LT -> [LT]
-l_normalitza_n t | esta_normal t = t:[]
-                 | otherwise = t:l_normalitza_n t'
-    where t' = redueix_un_n t
-\end{lstlisting}
+l_normalitza_n = l_normalitza (redueix_un_n)
 
-\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
-\begin{lstlisting}[frame=mystyle]
 -- l_normalitza_a, rep un LT, i retorna una llista de LT's que sigui una sequencia de beta-reduccions, segons l'ordre aplicatiu
 l_normalitza_a :: LT -> [LT]
-l_normalitza_a t | esta_normal t = t:[]
-                 | otherwise = t:l_normalitza_a t'
-    where t' = redueix_un_a t
+l_normalitza_a = l_normalitza (redueix_un_a)
 \end{lstlisting}
 
 
 
+
+
+
+I finalment, amb les funcions normalitza (d'ordre superior), normalitza\_n, normalitza\_a, 
+
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
+-- normalitza, funcio d'ordre superior que evita la repeticio de codi entra la forma normal i l'aplicatiu
+normalitza :: (LT -> [LT]) -> LT -> (Int, LT)
+normalitza f t = (llargada (lpassos t),last (lpassos t))
+    where lpassos = f
+
 -- normalitza_n, rep un LT, i retorna una tupla amb el nombre de passos, mes el LT en forma normal, seguint l'ordre normal
 normalitza_n :: LT -> (Int, LT)
-normalitza_n t = (llargada (lpassos t),last (lpassos t))
-    where lpassos = l_normalitza_n
-\end{lstlisting}
+normalitza_n = normalitza (l_normalitza_n)
 
-\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
-\begin{lstlisting}[frame=mystyle]
 -- normalitza_a, rep un LT, i retorna una tupla amb el nombre de passos, mes el LT en forma normal, seguint l'ordre aplicatiu
 normalitza_a :: LT -> (Int, LT)
-normalitza_a t = (llargada (lpassos t),last (lpassos t))
-    where lpassos = l_normalitza_a
+normalitza_a = normalitza (l_normalitza_a)
 \end{lstlisting}
 
 \clearpage
@@ -530,7 +548,33 @@ Sí. \\
 
 \textbf{Se us acudeix alguna noció d’ordre entre LT per tal de poder fer el tipus LT instància d’Ord?} \\
 
-Una possible noció d'ordre entre $\lambda$-termes podria ser el nombre de lambdes, i seria molt senzill de calcular, ja que només caldria obtenir la llargada de la llista de variables lligades del terme, perquè si és una variable lligada és perquè hi ha una $\lambda$ que la lliga, per tant, podria ser una noció d'ordre.
+Una possible noció d'ordre entre $\lambda$-termes és \textbf{la profunditat de l'arbre de parsing}, és a dir, \textbf{pel terme $\lambda_x x$ amb una profunditat de $1$}, comparat amb \textbf{el terme $\lambda_x x y$ amb una profunditat de 2}, això vol dir que \textbf{el primer és menor que el segon}, o dit d'una altra manera, el primer és menys profund que el segon. Per això hem implementat una nova funció auxiliar que s'encarrega de calcular la profunditat de l'arbre de parsing d'un terme qualsevol.
+
+\begin{lstlisting}[language=Haskell]
+-- get_depth, funcio que donat un LT, retorna la profunditat del seu arbre de parsing
+get_depth :: LT -> Int
+get_depth (Va a) = 0
+get_depth (Ab _ t) = get_depth t + 1
+get_depth (Ap t1 t2) = (get_depth t1 + get_depth t2) + 1
+\end{lstlisting}
+
+I ja podem fer que el \textbf{tipus LT sigui instància de la classe Ord}.
+
+\begin{lstlisting}[language=Haskell]
+instance Ord LT where
+    compare t1 t2 | get_depth t1 == get_depth t2 = EQ
+                  | get_depth t1 <= get_depth t2 = LT
+                  | otherwise = GT
+\end{lstlisting}
+
+Provem amb l'exemple d'abans, és a dir, a veure si $(\lambda_x x) \leq (\lambda_x x y)$, i si comparem el primer amb el combinador $T$?
+
+\begin{lstlisting}[language=Haskell]
+*Main> (Ab "x" (Va "x")) <= (Ab "x" (Ap (Va "x") (Va "y")))
+True
+*Main> (Ab "x" (Va "x")) >= t
+False
+\end{lstlisting}
 
 \clearpage
 
