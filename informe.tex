@@ -369,7 +369,7 @@ Exemples, podem provar de reduir el redex, $((\lambda_x \lambda_y x) a)$, primer
 
 \clearpage
 
-Amb les funcions l\_normalitza (d'ordre superior), l\_normalitza\_n, l\_normalitza\_a, 
+Amb les funcions l\_normalitza (d'ordre superior), l\_normalitza\_n, l\_normalitza\_a, donat un terme, obtenim la llista de $\beta$-reduccions que cal fer per obtenir la forma normal, l'última posició és la forma normal. Aquest codi està a la funció d'ordre superior (l\_normalitza), i des de l\_normalitza\_n, l\_normalitza\_a només es fa la crida a aquesta funció d'ordre superior, passant per paràmetre la funció redueix\_un\_n o a, i el terme implícit com a segon paràmetre.
 
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
@@ -388,18 +388,33 @@ l_normalitza_a :: LT -> [LT]
 l_normalitza_a = l_normalitza (redueix_un_a)
 \end{lstlisting}
 
+Exemples, continuem amb el terme, $((\lambda_x \lambda_y x) a)$, primer en ordre normal, i després en ordre aplicatiu.
 
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
+*Main> l_normalitza_n (Ap true (Va "a"))
+[((\x. (\y. x)) a),(\y. a)]
+*Main> l_normalitza_a (Ap true (Va "a"))
+[((\x. (\y. x)) a),(\y. a)]
+\end{lstlisting}
 
+Com que només hi ha un redex, l'ordre normal o aplicatiu és el mateix, però si provem amb el terme, $(\lambda_x x ((\lambda_y y) b)) a$, conté dos redex l'ordre normal i aplicatiu no seran el mateix.
 
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
+*Main> l_normalitza_n (Ap (Ab "x" (Ap (Va "x") (Ap (Ab "y" (Va "y")) (Va "b")))) (Va "a"))
+[((\x. (x ((\y. y) b))) a),(a ((\y. y) b)),(a b)]
+*Main> l_normalitza_a (Ap (Ab "x" (Ap (Va "x") (Ap (Ab "y" (Va "y")) (Va "b")))) (Va "a"))
+[((\x. (x ((\y. y) b))) a),((\x. (x b)) a),(a b)]
+\end{lstlisting}
 
-
-I finalment, amb les funcions normalitza (d'ordre superior), normalitza\_n, normalitza\_a, 
+I finalment, amb les funcions normalitza (d'ordre superior), normalitza\_n, normalitza\_a, passa el mateix que amb l'anterior funció, les funcions normalitza\_n i normalitza\_a només fan la crida a la funció d'ordre superior (normalitza). La funció normalitza retorna una tupla amb el nombre de passos/$\beta$-reduccions fins a arribar a la forma normal menys 1 (l'últim element que és la forma normal), més la forma normal, llavors el nombre de passos és la llargada de la llista obtinguda amb l'anterior funció (l\_normalitza) menys 1, i la forma normal és l'últim element de la llista.
 
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
 -- normalitza, funcio d'ordre superior que evita la repeticio de codi entra la forma normal i l'aplicatiu
 normalitza :: (LT -> [LT]) -> LT -> (Int, LT)
-normalitza f t = (llargada (lpassos t),last (lpassos t))
+normalitza f t = (llargada (lpassos t) - 1,last (lpassos t))
     where lpassos = f
 
 -- normalitza_n, rep un LT, i retorna una tupla amb el nombre de passos, mes el LT en forma normal, seguint l'ordre normal
@@ -411,11 +426,25 @@ normalitza_a :: LT -> (Int, LT)
 normalitza_a = normalitza (l_normalitza_a)
 \end{lstlisting}
 
+Continuant amb els exemples anteriors.
+
+\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
+\begin{lstlisting}[frame=mystyle]
+*Main> normalitza_n (Ap true (Va "a"))
+(1,(\y. a))
+*Main> normalitza_a (Ap true (Va "a"))
+(1,(\y. a))
+*Main> normalitza_n (Ap (Ab "x" (Ap (Va "x") (Ap (Ab "y" (Va "y")) (Va "b")))) (Va "a"))
+(2,(a b))
+*Main> normalitza_a (Ap (Ab "x" (Ap (Va "x") (Ap (Ab "y" (Va "y")) (Va "b")))) (Va "a"))
+(2,(a b))
+\end{lstlisting}
+
 \clearpage
 
 \subsection{Definicions del meta-llenguatge}
 
-Com ja hem anat veient, hem implementat les definicions del meta-llenguatge vistes a teoria, i totes s'han implementat seguint el mateix esquema, i com el tipus LT és instància de la classe Show, llavors es poden visualitzar igual que a teoria.
+Com ja hem anat veient, hem implementat les definicions del meta-llenguatge vistes a teoria, i totes s'han implementat seguint el mateix esquema, i com que el tipus LT és instància de la classe Show, llavors es poden visualitzar igual que a teoria.
 
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
@@ -450,10 +479,7 @@ first :: LT
 first = Ab "x" (Ap (Va "x") true)
 second :: LT
 second = Ab "x" (Ap (Va "x") false)
-\end{lstlisting}
 
-\lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
-\begin{lstlisting}[frame=mystyle]
 -- successor
 succDef :: LT
 succDef = Ab "n" (Ab "f" (Ab "x" (Ap (Ap (Va "n") (Va "f")) (Ap (Va "f") (Va "x")))))
@@ -506,7 +532,7 @@ tres :: LT
 tres = snd (normalitza_n (Ap succDef (Ap succDef (Ap succDef zero))))
 \end{lstlisting}
 
-Finalment, també podem definir el factorial com, una funció tal que esperi per paràmetre un combinador de punt fixe ($T$ o $Y$), i calculi el factorial.
+Finalment, també podem definir el factorial com, una funció tal que esperi per paràmetre un combinador de punt fixe ($T$ o $Y$), i calculi i retorni el factorial.
 
 \lstset{language=Haskell, breaklines=true, basicstyle=\footnotesize}
 \begin{lstlisting}[frame=mystyle]
@@ -524,22 +550,22 @@ En un minut de temps podem fer fins al factorial de dos fent servir el combinado
 
 \begin{lstlisting}[language=Haskell]
 *Main> normalitza_n (Ap (factorial t) zero)
-(13,(\f. (\x. (f x))))
+(12,(\f. (\x. (f x))))
 *Main> normalitza_n (Ap (factorial t) u)
-(60,(\f. (\x. (f x))))
+(59,(\f. (\x. (f x))))
 *Main> normalitza_n (Ap (factorial t) dos)
-(434,(\f. (\x. (f (f x)))))
+(433,(\f. (\x. (f (f x)))))
 \end{lstlisting}
 
-I també fins al dos fent servir el combinador $Y$. Els dos fent servir l'ordre normal, ja que amb l'ordre aplicatiu entra en bucle.
+I també fins al dos fent servir el combinador $Y$. Els dos fent servir l'ordre normal, ja que amb l'ordre aplicatiu entra en bucle o es penja.
 
 \begin{lstlisting}[language=Haskell]
 *Main> normalitza_n (Ap (factorial y) zero)
-(13,(\f. (\x. (f x))))
+(12,(\f. (\x. (f x))))
 *Main> normalitza_n (Ap (factorial y) u)
-(59,(\f. (\x. (f x))))
+(58,(\f. (\x. (f x))))
 *Main> normalitza_n (Ap (factorial y) dos)
-(430,(\f. (\x. (f (f x)))))
+(429,(\f. (\x. (f (f x)))))
 \end{lstlisting}
 
 \textbf{Podeu mirar de fer les funcions de $\beta$-reducció més eficients?} \\

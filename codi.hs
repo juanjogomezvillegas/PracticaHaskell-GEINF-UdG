@@ -157,7 +157,7 @@ l_normalitza_a = l_normalitza (redueix_un_a)
 
 -- normalitza, funció d'ordre superior que evita la repetició de codi entra la forma normal i l'aplicatiu
 normalitza :: (LT -> [LT]) -> LT -> (Int, LT)
-normalitza f t = (llargada (lpassos t),last (lpassos t))
+normalitza f t = (llargada (lpassos t) - 1,last (lpassos t))
     where lpassos = f
 
 -- normalitza_n, rep un LT, i retorna una tupla amb el nombre de passos, més el LT en forma normal, seguint l'ordre normal
