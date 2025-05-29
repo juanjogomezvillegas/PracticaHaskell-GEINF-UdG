@@ -1,3 +1,4 @@
+import Control.Monad.Cont (Cont)
 -- Pràctica de Haskell
 -- Copyright (c) 2025 Juan José Gómez Villegas (u1987338@campus.udg.edu), Guillem Pozo Sebastián (u1972840@campus.udg.edu)
 
@@ -171,9 +172,29 @@ normalitza_a = normalitza (l_normalitza_a)
 
 -- Extra: Notació de Bruijn
 
+-- funcions auxiliars
+
+-- get_cont_aux, funció que per cada variable d'una llista li assigna un numero correlatiu de 0 a n
+get_cont_aux :: [String] -> Int -> Context
+get_cont_aux (x:xs) n | n < (llargada (x:xs)) = (x,n):get_cont_aux xs (n+1)
+                      | otherwise = [] ++ [(x,n)]
+
+-- get_cont, funció que donat un LT, retorna el seu Context
+get_cont :: LT -> Context
+get_cont t = get_cont_aux ls 0 ++ get_cont_aux lf ((llargada ls) + 1)
+    where lf = fst (freeAndboundVars t)
+          ls = snd (freeAndboundVars t)
+
+-- funcions principals
+
+-- a_deBruijn_aux, funció auxiliar per afegir parametres si cal
+a_deBruijn_aux :: LT -> Context -> LTdB
+a_deBruijn_aux t c = AbdB (ApdB (VadB 0) (VadB 0))
+
 -- a_deBruijn, funció que rep un LT i un Context, i el passa a LTdB
+-- p.e. a_deBruijn (Ab "x" (Va "x")) (get_cont (Ab "x" (Va "x")))
 a_deBruijn :: LT -> Context -> LTdB
-a_deBruijn (Va _) c = (VadB 0)
+a_deBruijn = a_deBruijn_aux
 
 -- de_deBruijn, funció que rep un LTdB i el passa a LT
 de_deBruijn :: LTdB -> LT
