@@ -22,6 +22,11 @@ instance Eq LT where
     (==) (Ab _ t1) (Ab _ t2) = t1 == t2
     (==) _ _ = False
 
+instance Ord LT where
+    compare t1 t2 | get_depth t1 == get_depth t2 = EQ
+                  | get_depth t1 <= get_depth t2 = LT
+                  | otherwise = GT
+
 -- definició de la gramàtica del lambda càlcul amb notació de bruijn
 data LTdB = VadB Int | ApdB LTdB LTdB | AbdB LTdB
 
@@ -46,6 +51,12 @@ data Substitucio = Sub String LT
 type Context = [(String,Int)]
 
 -- Funcions auxiliars
+
+-- get_depth, funció que donat un LT, retorna la profunditat del seu arbre de parsing
+get_depth :: LT -> Int
+get_depth (Va a) = 0
+get_depth (Ab _ t) = get_depth t + 1
+get_depth (Ap t1 t2) = (get_depth t1 + get_depth t2) + 1
 
 -- es_redex, funció que donat un LT, retorna True si es un redex, False altrament
 es_redex :: LT -> Bool
@@ -109,21 +120,26 @@ beta_redueix (Ap (Ab a t1) t2) = subst t1 (Sub a t2)
 beta_redueix (Ab _ t) = beta_redueix t
 beta_redueix t = t
 
+-- redueix_un, funció d'ordre superior que evita la repetició de codi entra la forma normal i l'aplicatiu
+redueix_un :: (LT -> LT) -> LT -> LT
+redueix_un f (Ap m n) = f (Ap m n)
+redueix_un f (Ab x t) = Ab x (redueix_un f t)
+
 -- redueix_un_n, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reducció segons l'ordre normal
 redueix_un_n :: LT -> LT
-redueix_un_n (Ap m n) | es_redex (Ap m n) = beta_redueix (Ap m n)
-                      | conte_redex m = Ap (redueix_un_n m) n
-                      | conte_redex n = Ap m (redueix_un_n n)
-                      | otherwise = Ap m n
-redueix_un_n (Ab x t) = Ab x (redueix_un_n t)
+redueix_un_n = redueix_un casbase
+    where casbase (Ap m n) | es_redex (Ap m n) = beta_redueix (Ap m n)
+                           | conte_redex m = Ap (redueix_un casbase m) n
+                           | conte_redex n = Ap m (redueix_un casbase n)
+                           | otherwise = Ap m n
 
 -- redueix_un_a, rep un LT, i retorna el LT resultant d'aplicar la primera beta-reducció segons l'ordre aplicatiu
 redueix_un_a :: LT -> LT
-redueix_un_a (Ap m n) | conte_redex m = Ap (redueix_un_a m) n
-                      | conte_redex n = Ap m (redueix_un_a n)
-                      | es_redex (Ap m n) = beta_redueix (Ap m n)
-                      | otherwise = Ap m n
-redueix_un_a (Ab x t) = Ab x (redueix_un_a t)
+redueix_un_a = redueix_un casbase
+    where casbase (Ap m n) | conte_redex m = Ap (redueix_un casbase m) n
+                           | conte_redex n = Ap m (redueix_un casbase n)
+                           | es_redex (Ap m n) = beta_redueix (Ap m n)
+                           | otherwise = Ap m n
 
 -- l_normalitza, funció d'ordre superior que evita la repetició de codi entra la forma normal i l'aplicatiu
 l_normalitza :: (LT -> LT) -> LT -> [LT]
