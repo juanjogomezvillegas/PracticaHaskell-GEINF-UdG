@@ -1,4 +1,3 @@
-import Control.Monad.Cont (Cont)
 -- Pràctica de Haskell
 -- Copyright (c) 2025 Juan José Gómez Villegas (u1987338@campus.udg.edu), Guillem Pozo Sebastián (u1972840@campus.udg.edu)
 
@@ -90,8 +89,8 @@ llargada = foldr (\_ y -> 1+y) 0
 -- freeAndboundVarsAux, funció que construeix una tupla amb dues llistes que continguin les variables lliures (first) i lligades (second)
 freeAndboundVarsAux :: [String] -> [String] -> LT -> ([String],[String])
 freeAndboundVarsAux freeVars boundVars (Va a) | a `elem` boundVars = (freeVars,boundVars)
-                                              | otherwise = (a:freeVars,boundVars)
-freeAndboundVarsAux freeVars boundVars (Ab a t1) = freeAndboundVarsAux freeVars (a:boundVars) t1
+                                              | otherwise = (freeVars ++ [a],boundVars)
+freeAndboundVarsAux freeVars boundVars (Ab a t1) = freeAndboundVarsAux freeVars (boundVars ++ [a]) t1
 freeAndboundVarsAux freeVars boundVars (Ap t1 t2) = freeAndboundVarsAux freeVars boundVars t1 `concat_tuples` freeAndboundVarsAux freeVars boundVars t2
 
 -- Funcions principals
@@ -175,13 +174,13 @@ normalitza_a = normalitza (l_normalitza_a)
 -- funcions auxiliars
 
 -- get_cont_aux, funció que per cada variable d'una llista li assigna un numero correlatiu de 0 a n
-get_cont_aux :: [String] -> Int -> Context
-get_cont_aux (x:xs) n | n < (llargada (x:xs)) = (x,n):get_cont_aux xs (n+1)
-                      | otherwise = [] ++ [(x,n)]
+get_cont_aux :: Int -> [String] -> Context
+get_cont_aux _ [] = []
+get_cont_aux n (x:xs) = (x,n):get_cont_aux (n+1) xs
 
 -- get_cont, funció que donat un LT, retorna el seu Context
 get_cont :: LT -> Context
-get_cont t = get_cont_aux ls 0 ++ get_cont_aux lf ((llargada ls) + 1)
+get_cont t = get_cont_aux 0 ls ++ get_cont_aux ((llargada ls) + 1) lf
     where lf = fst (freeAndboundVars t)
           ls = snd (freeAndboundVars t)
 
