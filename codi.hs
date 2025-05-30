@@ -188,6 +188,11 @@ get_cont t = get_cont_aux 0 ls ++ get_cont_aux ((llargada ls) + 1) lf
 mapeja :: Eq a => a -> [(a,b)] -> b
 mapeja a (t:ts) = if a == fst t then snd t else mapeja a ts
 
+-- generar_noms, funció que a partir d'un enter, genera un string de la forma de: x', on x tindrà exactament n primes
+generar_noms :: Int -> String
+generar_noms n | n == 0 = "x"
+               | otherwise = generar_noms (n-1) ++ "\'"
+
 -- funcions principals
 
 -- a_deBruijn, funció que rep un LT i un Context, i el passa a LTdB
@@ -196,9 +201,15 @@ a_deBruijn (Va a) c = VadB (mapeja (head (filter (==a) (map fst c))) c)
 a_deBruijn (Ap t1 t2) c = ApdB (a_deBruijn t1 c) (a_deBruijn t2 c)
 a_deBruijn (Ab _ t) c = AbdB (a_deBruijn t c)
 
+-- de_deBruijn_aux, funció auxiliar que donat un enter i un LTdB, retorna el LTdB convertit a LT, el enter es per controlar els noms de les variables
+de_deBruijn_aux :: Int -> LTdB -> LT
+de_deBruijn_aux _ (VadB a) = Va (generar_noms a)
+de_deBruijn_aux nl (ApdB t1 t2) = Ap (de_deBruijn_aux nl t1) (de_deBruijn_aux nl t2)
+de_deBruijn_aux nl (AbdB t) = Ab (generar_noms nl) (de_deBruijn_aux (nl+1) t)
+
 -- de_deBruijn, funció que rep un LTdB i el passa a LT
 de_deBruijn :: LTdB -> LT
-de_deBruijn (VadB a) = (Va "a")
+de_deBruijn = de_deBruijn_aux 0
 
 -- Alguns combinadors i definicions del meta-llenguatge
 
