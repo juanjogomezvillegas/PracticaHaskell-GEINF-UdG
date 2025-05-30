@@ -187,8 +187,8 @@ La següent funció és una funció auxiliar que donades dues llistes de cadenes
 -- freeAndboundVarsAux, funcio que construeix una tupla amb dues llistes que continguin les variables lliures (first) i lligades (second)
 freeAndboundVarsAux :: [String] -> [String] -> LT -> ([String],[String])
 freeAndboundVarsAux freeVars boundVars (Va a) | a `elem` boundVars = (freeVars,boundVars)
-                                              | otherwise = (a:freeVars,boundVars)
-freeAndboundVarsAux freeVars boundVars (Ab a t1) = freeAndboundVarsAux freeVars (a:boundVars) t1
+                                              | otherwise = (freeVars ++ [a],boundVars)
+freeAndboundVarsAux freeVars boundVars (Ab a t1) = freeAndboundVarsAux freeVars (boundVars ++ [a]) t1
 freeAndboundVarsAux freeVars boundVars (Ap t1 t2) = freeAndboundVarsAux freeVars boundVars t1 `concat_tuples` freeAndboundVarsAux freeVars boundVars t2
 \end{lstlisting}
 
@@ -657,14 +657,83 @@ L'explicació de per què un \textbf{Context} és una llista de tuples de cadene
 
 \subsection{Funcions auxiliars}
 
+Per implementar aquest extra, ha sigut necessària la implementació de les següents funcions, que ns permeten a partir d'un $\lambda$-terme, i de la tupla amb les variables lliures i lligades, definir un Context com una llista de tuples, \textit{semblant a un map}, que mapeja noms de variables cap a enters. I el funcionament és, com que freeAndboundVars retorna les variables ordenades per ordre d'aparició, és a dir, la primera variable apareix a la primera posició, i successivament, llavors a cada variable lligada li podem assignar un número correlatiu de $0$ a $n-1$, i finalment concatenar a la llista les variables lliures, i fer el mateix, però des de $n$ fins que s'acabin les variables lliures.
+
+\begin{lstlisting}[language=Haskell]
+-- get_cont_aux, funcio que per cada variable d'una llista li assigna un numero correlatiu de 0 a n
+get_cont_aux :: Int -> [String] -> Context
+get_cont_aux _ [] = []
+get_cont_aux n (x:xs) = (x,n):get_cont_aux (n+1) xs
+
+-- get_cont, funcio que donat un LT, retorna el seu Context
+get_cont :: LT -> Context
+get_cont t = get_cont_aux 0 ls ++ get_cont_aux ((llargada ls) + 1) lf
+    where lf = fst (freeAndboundVars t)
+          ls = snd (freeAndboundVars t)
+\end{lstlisting}
+
+Exemples.
+
+\begin{lstlisting}[language=Haskell]
+*Main> get_cont suma
+[("m",0),("n",1),("f",2),("x",3)]
+*Main> get_cont t
+[("x",0),("y",1)]
+*Main> get_cont cond
+[("e",0),("e1",1),("e2",2)]
+\end{lstlisting}
+
+La següent funció ho diu el nom, mapeja elements dins d'una llista (element first), i retorna el seu corresponent valor (second).
+
+\begin{lstlisting}[language=Haskell]
+-- mapeja_str_to_int, funcio que mapeja una cadena de text (variable) cap a un enter (posicio o distancia en lambdes)
+mapeja :: Eq a => a -> [(a,b)] -> b
+mapeja a (t:ts) = if a == fst t then snd t else mapeja a ts
+\end{lstlisting}
+
+Exemples.
+
+\begin{lstlisting}[language=Haskell]
+*Main> mapeja "e" (get_cont cond)
+0
+*Main> get_cont cond
+[("e",0),("e1",1),("e2",2)]
+*Main> mapeja "e" (get_cont cond)
+0
+\end{lstlisting}
+
 \clearpage
 
 \subsection{Funcions principals}
 
+Un cop implementades les funcions auxiliars, implementar la següent funció és senzill, només és una traducció de variables a enters, i acabar construint un $\lambda$-terme amb notació de Bruijn.
+
 \begin{lstlisting}[language=Haskell]
 -- a_deBruijn, funcio que rep un LT i un Context, i el passa a LTdB
 a_deBruijn :: LT -> Context -> LTdB
+a_deBruijn (Va a) c = VadB (mapeja (head (filter (==a) (map fst c))) c)
+a_deBruijn (Ap t1 t2) c = ApdB (a_deBruijn t1 c) (a_deBruijn t2 c)
+a_deBruijn (Ab _ t) c = AbdB (a_deBruijn t c)
 \end{lstlisting}
+
+Exemples.
+
+\begin{lstlisting}[language=Haskell]
+*Main> suma
+(\m. (\n. (\f. (\x. ((m f) ((n f) x))))))
+*Main> a_deBruijn suma (get_cont suma)
+(\. (\. (\. (\. ((0 2) ((1 2) 3))))))
+*Main> t
+((\x. (\y. (y ((x x) y)))) (\x. (\y. (y ((x x) y)))))
+*Main> a_deBruijn t (get_cont t)
+((\. (\. (1 ((0 0) 1)))) (\. (\. (1 ((0 0) 1)))))
+*Main> cond
+(\e. (\e1. (\e2. ((e e1) e2))))
+*Main> a_deBruijn cond (get_cont cond)
+(\. (\. (\. ((0 1) 2))))
+\end{lstlisting}
+
+La següent funció ja no és tant senzilla.
 
 \begin{lstlisting}[language=Haskell]
 -- de_deBruijn, funcio que rep un LTdB i el passa a LT

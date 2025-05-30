@@ -191,7 +191,6 @@ mapeja a (t:ts) = if a == fst t then snd t else mapeja a ts
 -- funcions principals
 
 -- a_deBruijn, funció que rep un LT i un Context, i el passa a LTdB
--- p.e. a_deBruijn (Ab "x" (Va "x")) (get_cont (Ab "x" (Va "x")))
 a_deBruijn :: LT -> Context -> LTdB
 a_deBruijn (Va a) c = VadB (mapeja (head (filter (==a) (map fst c))) c)
 a_deBruijn (Ap t1 t2) c = ApdB (a_deBruijn t1 c) (a_deBruijn t2 c)
