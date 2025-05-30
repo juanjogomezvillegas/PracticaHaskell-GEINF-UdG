@@ -702,6 +702,22 @@ Exemples.
 0
 \end{lstlisting}
 
+I la següent funció, serveix per, donat un enter poder generar un nom per una variable, i hem tingut la idea de començar amb una "x", i anar afegint primes fins que l'enter no sigui igual a 0.
+
+\begin{lstlisting}[language=Haskell]
+-- generar_noms, funcio que a partir d'un enter, genera un string de la forma de: x', on x tindra exactament n primes
+generar_noms :: Int -> String
+generar_noms n | n == 0 = "x"
+               | otherwise = generar_noms (n-1) ++ "\'"
+\end{lstlisting}
+
+Exemples.
+
+\begin{lstlisting}[language=Haskell]
+*Main> map generar_noms [0..5]
+["x","x'","x''","x'''","x''''","x'''''"]
+\end{lstlisting}
+
 \clearpage
 
 \subsection{Funcions principals}
@@ -733,11 +749,35 @@ Exemples.
 (\. (\. (\. ((0 1) 2))))
 \end{lstlisting}
 
-La següent funció ja no és tant senzilla.
+Les següents funcions són el pas previ a la traducció a notació de Bruijn, és a dir, tornar a la notació clàssica explicada a teoria.
 
 \begin{lstlisting}[language=Haskell]
+-- de_deBruijn_aux, funcio auxiliar que donat un enter i un LTdB, retorna el LTdB convertit a LT, el enter es per controlar els noms de les variables
+de_deBruijn_aux :: Int -> LTdB -> LT
+de_deBruijn_aux _ (VadB a) = Va (generar_noms a)
+de_deBruijn_aux nl (ApdB t1 t2) = Ap (de_deBruijn_aux nl t1) (de_deBruijn_aux nl t2)
+de_deBruijn_aux nl (AbdB t) = Ab (generar_noms nl) (de_deBruijn_aux (nl+1) t)
+
 -- de_deBruijn, funcio que rep un LTdB i el passa a LT
 de_deBruijn :: LTdB -> LT
+de_deBruijn = de_deBruijn_aux 0
+\end{lstlisting}
+
+Exemples.
+
+\begin{lstlisting}[language=Haskell]
+*Main> a_deBruijn cond (get_cont cond)
+(\. (\. (\. ((0 1) 2))))
+*Main> de_deBruijn (a_deBruijn cond (get_cont cond))
+(\x. (\x'. (\x''. ((x x') x''))))
+*Main> a_deBruijn suma (get_cont suma)
+(\. (\. (\. (\. ((0 2) ((1 2) 3))))))
+*Main> de_deBruijn (a_deBruijn suma (get_cont suma))
+(\x. (\x'. (\x''. (\x'''. ((x x'') ((x' x'') x'''))))))
+*Main> a_deBruijn t (get_cont t)
+((\. (\. (1 ((0 0) 1)))) (\. (\. (1 ((0 0) 1)))))
+*Main> de_deBruijn (a_deBruijn t (get_cont t))
+((\x. (\x'. (x' ((x x) x')))) (\x. (\x'. (x' ((x x) x')))))
 \end{lstlisting}
 
 \end{document}
