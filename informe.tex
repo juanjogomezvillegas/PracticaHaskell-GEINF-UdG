@@ -611,13 +611,19 @@ instance Ord LT where
                   | otherwise = GT
 \end{lstlisting}
 
-Provem amb l'exemple d'abans, és a dir, a veure si $(\lambda_x x) \leq (\lambda_x x y)$, i si comparem el primer amb el combinador $T$?
+Provem amb l'exemple d'abans, és a dir, a veure si $(\lambda_x x) \leq (\lambda_x x y)$, i si comparem el primer amb el combinador $T$? I si provem a comparar els naturals?
 
 \begin{lstlisting}[language=Haskell]
 *Main> (Ab "x" (Va "x")) <= (Ab "x" (Ap (Va "x") (Va "y")))
 True
 *Main> (Ab "x" (Va "x")) >= t
 False
+*Main> u < dos
+True
+*Main> u >= deu
+False
+*Main> u < deu
+True
 \end{lstlisting}
 
 \clearpage
@@ -651,13 +657,13 @@ També hem hagut de definir un \textbf{Context} per convertir un $\lambda$-terme
 type Context = [(String,Int)]
 \end{lstlisting}
 
-L'explicació de per què un \textbf{Context} és una llista de tuples de cadenes de caràcters i enters, és que d'aquesta manera cada $\lambda$-terme tindrà una llista amb una tupla per cada variable, on hi haurà la relació entre el nom de la variable (primera posició de la tupla) amb la posició o distància en lambdes (segona posició de la tupla), de forma semblant a un map que mapeji noms de variables cap a enters.
+L'explicació de per què un \textbf{Context} és una llista de tuples de cadenes de caràcters i enters, és que d'aquesta manera cada $\lambda$-terme tindrà una llista amb una tupla per cada variable, on hi haurà la relació entre el nom de la variable (primera posició de la tupla) amb la posició o distància en lambdes (segona posició de la tupla), de forma semblant a un map que mapeji noms de variables cap a enters. Graciés a fer-ho així la implementació de les funcions següents és més senzilla.
 
 \clearpage
 
 \subsection{Funcions auxiliars}
 
-Per implementar aquest extra, ha sigut necessària la implementació de les següents funcions, que ns permeten a partir d'un $\lambda$-terme, i de la tupla amb les variables lliures i lligades, definir un Context com una llista de tuples, \textit{semblant a un map}, que mapeja noms de variables cap a enters. I el funcionament és, com que freeAndboundVars retorna les variables ordenades per ordre d'aparició, és a dir, la primera variable apareix a la primera posició, i successivament, llavors a cada variable lligada li podem assignar un número correlatiu de $0$ a $n-1$, i finalment concatenar a la llista les variables lliures, i fer el mateix, però des de $n$ fins que s'acabin les variables lliures.
+Per implementar aquest extra, ha sigut necessària la implementació de les següents funcions, que ens permeten a partir d'un $\lambda$-terme, i de la tupla amb les variables lliures i lligades, definir un Context com una llista de tuples, \textit{semblant a un map}, que mapeja noms de variables cap a enters. I el funcionament és, com que freeAndboundVars retorna les variables ordenades per ordre d'aparició, és a dir, la primera variable apareix a la primera posició, i successivament, llavors a cada variable lligada li podem assignar un número correlatiu de $0$ a $n-1$, i finalment fer el mateix amb les variables lliures des de $n$ fins que s'acabin les variables. Això ho fan les funcions \textbf{get\_cont\_aux} i \textbf{get\_cont}.
 
 \begin{lstlisting}[language=Haskell]
 -- get_cont_aux, funcio que per cada variable d'una llista li assigna un numero correlatiu de 0 a n
@@ -672,18 +678,16 @@ get_cont t = get_cont_aux 0 ls ++ get_cont_aux ((llargada ls) + 1) lf
           ls = snd (freeAndboundVars t)
 \end{lstlisting}
 
-Exemples.
+Exemples d'execució:
 
 \begin{lstlisting}[language=Haskell]
 *Main> get_cont suma
 [("m",0),("n",1),("f",2),("x",3)]
 *Main> get_cont t
 [("x",0),("y",1)]
-*Main> get_cont cond
-[("e",0),("e1",1),("e2",2)]
 \end{lstlisting}
 
-La següent funció ho diu el nom, mapeja elements dins d'una llista (element first), i retorna el seu corresponent valor (second).
+La següent funció el nom ja diu el que fa, és a dir, mapeja elements dins d'una llista (element first), i retorna el seu corresponent valor (second). Aquesta funció ens permet treballar amb el tipus Context com si fos un map.
 
 \begin{lstlisting}[language=Haskell]
 -- mapeja_str_to_int, funcio que mapeja una cadena de text (variable) cap a un enter (posicio o distancia en lambdes)
@@ -691,18 +695,33 @@ mapeja :: Eq a => a -> [(a,b)] -> b
 mapeja a (t:ts) = if a == fst t then snd t else mapeja a ts
 \end{lstlisting}
 
-Exemples.
+Exemples d'execució:
 
 \begin{lstlisting}[language=Haskell]
-*Main> mapeja "e" (get_cont cond)
+*Main> mapeja "m" (get_cont suma)
 0
-*Main> get_cont cond
-[("e",0),("e1",1),("e2",2)]
-*Main> mapeja "e" (get_cont cond)
-0
+*Main> mapeja "f" (get_cont suma)
+2
 \end{lstlisting}
 
-I la següent funció, serveix per, donat un enter poder generar un nom per una variable, i hem tingut la idea de començar amb una "x", i anar afegint primes fins que l'enter no sigui igual a 0.
+La funció següent ens permet incrementar les distàncies de totes les variables del Context amb la $\lambda$ que l'està lligant, és a dir, incrementar els valors del second del map. I ens serveix per a la conversió d'un $\lambda$-terme amb notació clàssica a notació de Bruijn.
+
+\begin{lstlisting}[language=Haskell]
+-- incrementDist, funcio que donat un context, retorna el mateix context al que se li han incrementat les distancies de cada variable
+incrementDist :: Context -> Context
+incrementDist = map (\(x,i) -> (x,i+1))
+\end{lstlisting}
+
+Exemples d'execució:
+
+\begin{lstlisting}[language=Haskell]
+*Main> incrementDist (get_cont suma)
+[("m",1),("n",2),("f",3),("x",4)]
+*Main> incrementDist (get_cont t)
+[("x",1),("y",2)]
+\end{lstlisting}
+
+I l'última funció, ens serveix per al pas contrari, passar de la notació de Bruijn a la notació clàssica, i el seu funcionament és senzill, donat un enter, va afegint primes a una "x", fins que l'enter no sigui igual a 0.
 
 \begin{lstlisting}[language=Haskell]
 -- generar_noms, funcio que a partir d'un enter, genera un string de la forma de: x', on x tindra exactament n primes
@@ -711,7 +730,7 @@ generar_noms n | n == 0 = "x"
                | otherwise = generar_noms (n-1) ++ "\'"
 \end{lstlisting}
 
-Exemples.
+Exemples d'execució:
 
 \begin{lstlisting}[language=Haskell]
 *Main> map generar_noms [0..5]
@@ -722,62 +741,82 @@ Exemples.
 
 \subsection{Funcions principals}
 
-Un cop implementades les funcions auxiliars, implementar la següent funció és senzill, només és una traducció de variables a enters, i acabar construint un $\lambda$-terme amb notació de Bruijn.
+\subsubsection*{Convertir LT a LTdB}
+
+Un cop implementades les funcions auxiliars, implementar la següent funció és senzill, només és una traducció de variables a enters, tenint en compte que aquests enters són la distància de cada variable amb la $\lambda$ que l'està lligant, i finalment, acabar construint un $\lambda$-terme amb notació de Bruijn. També hem implementat una funció \textbf{a\_deBruijn\_i} que simplifica la crida a la funció \textbf{a\_deBruijn}. El funcionament de la funció \textbf{a\_deBruijn} és el següent: En el cas de les variables, només mapeja la variable (cadena de text) i retorna la distància (enter); en el cas de l'aplicació, es crea una aplicació on es crida a la mateixa funció dos cops, un per cada subterme; en el cas de l'abstracció, també crida a la mateixa funció, però abans afegeix al Context la variable que apareixia a la $\lambda$ amb distància inicial igual a 0, i incrementa en 1 les distàncies de la resta de variables, ja que comptem la distància en $\lambda$.
 
 \begin{lstlisting}[language=Haskell]
 -- a_deBruijn, funcio que rep un LT i un Context, i el passa a LTdB
 a_deBruijn :: LT -> Context -> LTdB
-a_deBruijn (Va a) c = VadB (mapeja (head (filter (==a) (map fst c))) c)
+a_deBruijn (Va a) c = VadB (mapeja a c)
 a_deBruijn (Ap t1 t2) c = ApdB (a_deBruijn t1 c) (a_deBruijn t2 c)
-a_deBruijn (Ab _ t) c = AbdB (a_deBruijn t c)
+a_deBruijn (Ab a t) c = AbdB (a_deBruijn t ((a,0):incrementDist c))
+
+-- a_deBruijn_i, funcio que simplifica la crida a la funcio a_deBruijn
+a_deBruijn_i :: LT -> LTdB
+a_deBruijn_i t = a_deBruijn t (get_cont t)
 \end{lstlisting}
 
-Exemples.
+Per provar el funcionament de la funció, podem cridar a \textbf{a\_deBruijn} acompanyada del terme amb notació clàssica (tipus LT) i d'un Context (crida a get\_cont), o també podem de forma més simplificada, cridar a \textbf{a\_deBruijn\_i} acompanyada del terme de tipus LT. Ho provarem p.e. amb els combinadors de $G$ i $G'$, i els combinadors de punt fixe $Y$ i $T$. 
 
 \begin{lstlisting}[language=Haskell]
-*Main> suma
-(\m. (\n. (\f. (\x. ((m f) ((n f) x))))))
-*Main> a_deBruijn suma (get_cont suma)
-(\. (\. (\. (\. ((0 2) ((1 2) 3))))))
+*Main> g
+(\x. ((\y. (\x. (y y))) (\y. (\x. (y y)))))
+*Main> gprima
+(\x. (x ((\y. (\x. (x (y y)))) (\y. (\x. (x (y y)))))))
+*Main> a_deBruijn g (get_cont g)
+(\. ((\. (\. (1 1))) (\. (\. (1 1)))))
+*Main> a_deBruijn_i gprima
+(\. (0 ((\. (\. (0 (1 1)))) (\. (\. (0 (1 1)))))))
 *Main> t
 ((\x. (\y. (y ((x x) y)))) (\x. (\y. (y ((x x) y)))))
-*Main> a_deBruijn t (get_cont t)
-((\. (\. (1 ((0 0) 1)))) (\. (\. (1 ((0 0) 1)))))
-*Main> cond
-(\e. (\e1. (\e2. ((e e1) e2))))
-*Main> a_deBruijn cond (get_cont cond)
-(\. (\. (\. ((0 1) 2))))
+*Main> y
+(\f. ((\x. (f (x x))) (\x. (f (x x)))))
+*Main> a_deBruijn_i t
+((\. (\. (0 ((1 1) 0)))) (\. (\. (0 ((1 1) 0)))))
+*Main> a_deBruijn_i y
+(\. ((\. (1 (0 0))) (\. (1 (0 0)))))
 \end{lstlisting}
 
-Les següents funcions són el pas previ a la traducció a notació de Bruijn, és a dir, tornar a la notació clàssica explicada a teoria.
+\clearpage
+
+\subsubsection*{Convertir LTdB a LT}
+
+Per tal de convertir un $\lambda$-terme de notació de Bruijn a notació clàssica no és tan senzill, la funció \textbf{de\_deBruijn} crida a una funció auxiliar (de\_deBruijn\_aux), i el seu funcionament és el següent: En el cas de les variables, generem un nom a partir del valor enter, amb la funció \textbf{generar\_noms}, \textit{explicada anteriorment}, i retornem una tupla amb la variable en notació clàssica (amb una cadena de text), i un Context (inicialment una llista buida); en el cas de l'aplicació, fem el mateix de sempre, cridem a la mateixa funció per cada subterme, i retornem una tupla amb l'aplicació resultant amb notació clàssica, i el Context; i en el cas de l'abstracció, hem de definir un nom per la variable de la $\lambda$, farem servir la funció \textbf{generar\_noms}, i afegirem aquest nom al Context amb la distància que tenim de moment (paràmetre \textit{nl}), i finalment, cridem a la mateixa funció incrementant la distància (paràmetre \textit{nl}) en 1, el resultat serà una tupla amb el subterme en notació clàssica, i el Context final que mapeja totes les variables amb la seva distància.
 
 \begin{lstlisting}[language=Haskell]
--- de_deBruijn_aux, funcio auxiliar que donat un enter i un LTdB, retorna el LTdB convertit a LT, el enter es per controlar els noms de les variables
-de_deBruijn_aux :: Int -> LTdB -> LT
-de_deBruijn_aux _ (VadB a) = Va (generar_noms a)
-de_deBruijn_aux nl (ApdB t1 t2) = Ap (de_deBruijn_aux nl t1) (de_deBruijn_aux nl t2)
-de_deBruijn_aux nl (AbdB t) = Ab (generar_noms nl) (de_deBruijn_aux (nl+1) t)
+-- de_deBruijn_aux, funcio auxiliar que donat un enter, una llista buida i un LTdB, retorna una tupla amb el LTdB convertit a LT i el seu context, el enter es per controlar/generar els noms de les variables
+de_deBruijn_aux :: LTdB -> Int -> Context -> (LT,Context)
+de_deBruijn_aux (VadB a) nl c = (Va (generar_noms a),c)
+de_deBruijn_aux (ApdB t1 t2) nl c = (Ap (fst (de_deBruijn_aux t1 nl c)) (fst (de_deBruijn_aux t2 nl c)),c)
+de_deBruijn_aux (AbdB t) nl c = (Ab (var nl) lt,ct)
+    where var = generar_noms
+          (lt,ct) = de_deBruijn_aux t (nl+1) (((var nl),nl):c)
 
 -- de_deBruijn, funcio que rep un LTdB i el passa a LT
 de_deBruijn :: LTdB -> LT
-de_deBruijn = de_deBruijn_aux 0
+de_deBruijn t = fst (de_deBruijn_aux t 0 [])
 \end{lstlisting}
 
-Exemples.
+Continuant amb els exemples anteriors:
 
 \begin{lstlisting}[language=Haskell]
-*Main> a_deBruijn cond (get_cont cond)
-(\. (\. (\. ((0 1) 2))))
-*Main> de_deBruijn (a_deBruijn cond (get_cont cond))
-(\x. (\x'. (\x''. ((x x') x''))))
-*Main> a_deBruijn suma (get_cont suma)
-(\. (\. (\. (\. ((0 2) ((1 2) 3))))))
-*Main> de_deBruijn (a_deBruijn suma (get_cont suma))
-(\x. (\x'. (\x''. (\x'''. ((x x'') ((x' x'') x'''))))))
+*Main> a_deBruijn g (get_cont g)
+(\. ((\. (\. (1 1))) (\. (\. (1 1)))))
+*Main> de_deBruijn (a_deBruijn g (get_cont g))
+(\x. ((\x'. (\x''. (x' x'))) (\x'. (\x''. (x' x')))))
+*Main> a_deBruijn gprima (get_cont gprima)
+(\. (0 ((\. (\. (0 (1 1)))) (\. (\. (0 (1 1)))))))
+*Main> de_deBruijn (a_deBruijn gprima (get_cont gprima))
+(\x. (x ((\x'. (\x''. (x (x' x')))) (\x'. (\x''. (x (x' x')))))))
 *Main> a_deBruijn t (get_cont t)
-((\. (\. (1 ((0 0) 1)))) (\. (\. (1 ((0 0) 1)))))
+((\. (\. (0 ((1 1) 0)))) (\. (\. (0 ((1 1) 0)))))
 *Main> de_deBruijn (a_deBruijn t (get_cont t))
-((\x. (\x'. (x' ((x x) x')))) (\x. (\x'. (x' ((x x) x')))))
+((\x. (\x'. (x ((x' x') x)))) (\x. (\x'. (x ((x' x') x)))))
+*Main> a_deBruijn y (get_cont y)
+(\. ((\. (1 (0 0))) (\. (1 (0 0)))))
+*Main> de_deBruijn (a_deBruijn y (get_cont y))
+(\x. ((\x'. (x' (x x))) (\x'. (x' (x x)))))
 \end{lstlisting}
 
 \end{document}
