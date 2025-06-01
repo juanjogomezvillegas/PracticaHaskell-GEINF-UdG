@@ -188,6 +188,10 @@ get_cont t = get_cont_aux 0 ls ++ get_cont_aux ((llargada ls) + 1) lf
 mapeja :: Eq a => a -> [(a,b)] -> b
 mapeja a (t:ts) = if a == fst t then snd t else mapeja a ts
 
+-- mapeja_int_to_str, funció que mapeja un enter (posició o distància en lambdes) cap a una cadena de text (variable)
+mapeja_inv :: Eq a => a -> [(b,a)] -> b
+mapeja_inv a (t:ts) = if a == snd t then fst t else mapeja_inv a ts
+
 -- incrementDist, funció que donat un context, retorna el mateix context al que se li han incrementat les distancies de cada variable
 incrementDist :: Context -> Context
 incrementDist = map (\(x,i) -> (x,i+1))
@@ -209,17 +213,18 @@ a_deBruijn (Ab a t) c = AbdB (a_deBruijn t ((a,0):incrementDist c))
 a_deBruijn_i :: LT -> LTdB
 a_deBruijn_i t = a_deBruijn t (get_cont t)
 
--- de_deBruijn_aux, funció auxiliar que donat un enter, una llista buida i un LTdB, retorna una tupla amb el LTdB convertit a LT i el seu context, el enter es per controlar/generar els noms de les variables
-de_deBruijn_aux :: LTdB -> Int -> Context -> (LT,Context)
-de_deBruijn_aux (VadB a) nl c = (Va (generar_noms a),c)
-de_deBruijn_aux (ApdB t1 t2) nl c = (Ap (fst (de_deBruijn_aux t1 nl c)) (fst (de_deBruijn_aux t2 nl c)),c)
-de_deBruijn_aux (AbdB t) nl c = (Ab (var nl) lt,ct)
+-- de_deBruijn_aux, funció auxiliar que donat un enter, i un Context, retorna el LTdB convertit a LT
+de_deBruijn_aux :: LTdB -> Int -> Context -> LT
+de_deBruijn_aux (VadB a) nl c | (nl - a) `elem` map (snd) c =  Va (mapeja_inv (nl - a) c)
+                              | otherwise = Va (generar_noms a) -- en cas de variables lliures podem generar el nom directament
+de_deBruijn_aux (ApdB t1 t2) nl c = Ap (de_deBruijn_aux t1 nl c) (de_deBruijn_aux t2 nl c)
+de_deBruijn_aux (AbdB t) nl c = case t of (AbdB _) -> Ab (var nl) (de_deBruijn_aux t (nl+1) (((var nl),nl):c))
+                                          t -> Ab (var nl) (de_deBruijn_aux t nl (((var nl),nl):c))
     where var = generar_noms
-          (lt,ct) = de_deBruijn_aux t (nl+1) (((var nl),nl):c)
 
 -- de_deBruijn, funció que rep un LTdB i el passa a LT
 de_deBruijn :: LTdB -> LT
-de_deBruijn t = fst (de_deBruijn_aux t 0 [])
+de_deBruijn t = de_deBruijn_aux t 0 []
 
 -- Alguns combinadors i definicions del meta-llenguatge
 

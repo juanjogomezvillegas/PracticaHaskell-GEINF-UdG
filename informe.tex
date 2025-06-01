@@ -693,6 +693,9 @@ La següent funció el nom ja diu el que fa, és a dir, mapeja elements dins d'u
 -- mapeja_str_to_int, funcio que mapeja una cadena de text (variable) cap a un enter (posicio o distancia en lambdes)
 mapeja :: Eq a => a -> [(a,b)] -> b
 mapeja a (t:ts) = if a == fst t then snd t else mapeja a ts
+-- mapeja_int_to_str, funcio que mapeja un enter (posicio o distancia en lambdes) cap a una cadena de text (variable)
+mapeja_inv :: Eq a => a -> [(b,a)] -> b
+mapeja_inv a (t:ts) = if a == snd t then fst t else mapeja_inv a ts
 \end{lstlisting}
 
 Exemples d'execució:
@@ -782,41 +785,42 @@ Per provar el funcionament de la funció, podem cridar a \textbf{a\_deBruijn} ac
 
 \subsubsection*{Convertir LTdB a LT}
 
-Per tal de convertir un $\lambda$-terme de notació de Bruijn a notació clàssica no és tan senzill, la funció \textbf{de\_deBruijn} crida a una funció auxiliar (de\_deBruijn\_aux), i el seu funcionament és el següent: En el cas de les variables, generem un nom a partir del valor enter, amb la funció \textbf{generar\_noms}, \textit{explicada anteriorment}, i retornem una tupla amb la variable en notació clàssica (amb una cadena de text), i un Context (inicialment una llista buida); en el cas de l'aplicació, fem el mateix de sempre, cridem a la mateixa funció per cada subterme, i retornem una tupla amb l'aplicació resultant amb notació clàssica, i el Context; i en el cas de l'abstracció, hem de definir un nom per la variable de la $\lambda$, farem servir la funció \textbf{generar\_noms}, i afegirem aquest nom al Context amb la distància que tenim de moment (paràmetre \textit{nl}), i finalment, cridem a la mateixa funció incrementant la distància (paràmetre \textit{nl}) en 1, el resultat serà una tupla amb el subterme en notació clàssica, i el Context final que mapeja totes les variables amb la seva distància.
+Per tal de convertir un $\lambda$-terme de notació de Bruijn a notació clàssica no és tan senzill, la funció \textbf{de\_deBruijn} crida a una funció auxiliar (de\_deBruijn\_aux), per tal d'afegir dos paràmetres, un és el número de $\lambda$ que hi ha en un àmbit (paràmetre nl), i l'altre és el Context, inicialment com una llista buida, i el funcionament de la funció auxiliar és el següent: En el cas de les variables, només mapeja la diferència entre el nombre de $\lambda$ i la variable/distància en $\lambda$ (enter) cap al nom de la variable (cadena de text), és a dir, mapeja del second del Context fins al first del Context, \textit{el contrari que abans}; en el cas de l'aplicació, es crea una aplicació on es crida a la mateixa funció dos cops, un per cada subterme; i en el cas de l'abstracció, si el subterme és una altra abstracció hem de cridar a la mateixa funció incrementant el nombre de $\lambda$ (paràmetre nl), altrament, no incrementem res, però sempre afegim la nova variable generada amb un enter al Context, i la variable generada també serà la variable de la $\lambda$-abstracció, la generació de noms de variables es fa mitjançant la funció \textbf{generar\_noms}, \textit{explicada anteriorment}. \textbf{El detall important està en el cas de la variable}, busquem el nom de la variable al Context a partir de la diferència entre la distància amb $\lambda$ i el nombre total de $\lambda$, i per això fem servir la funció \textbf{mapeja\_inv}, que és l'invers de la funció \textbf{mapeja}, \textbf{això ho fa per les variables lligades}, les variables que ocorren lliures, podem generar el seu nom directament, ja que en l'anterior funció ja ens vam assegurar de què no hi hagués captures de variables.
 
 \begin{lstlisting}[language=Haskell]
--- de_deBruijn_aux, funcio auxiliar que donat un enter, una llista buida i un LTdB, retorna una tupla amb el LTdB convertit a LT i el seu context, el enter es per controlar/generar els noms de les variables
-de_deBruijn_aux :: LTdB -> Int -> Context -> (LT,Context)
-de_deBruijn_aux (VadB a) nl c = (Va (generar_noms a),c)
-de_deBruijn_aux (ApdB t1 t2) nl c = (Ap (fst (de_deBruijn_aux t1 nl c)) (fst (de_deBruijn_aux t2 nl c)),c)
-de_deBruijn_aux (AbdB t) nl c = (Ab (var nl) lt,ct)
+-- de_deBruijn_aux, funcio auxiliar que donat un enter, i un Context, retorna el LTdB convertit a LT
+de_deBruijn_aux :: LTdB -> Int -> Context -> LT
+de_deBruijn_aux (VadB a) nl c | (nl - a) `elem` map (snd) c =  Va (mapeja_inv (nl - a) c)
+                              | otherwise = Va (generar_noms a) -- en cas de variables lliures podem generar el nom directament
+de_deBruijn_aux (ApdB t1 t2) nl c = Ap (de_deBruijn_aux t1 nl c) (de_deBruijn_aux t2 nl c)
+de_deBruijn_aux (AbdB t) nl c = case t of (AbdB _) -> Ab (var nl) (de_deBruijn_aux t (nl+1) (((var nl),nl):c))
+                                          t -> Ab (var nl) (de_deBruijn_aux t nl (((var nl),nl):c))
     where var = generar_noms
-          (lt,ct) = de_deBruijn_aux t (nl+1) (((var nl),nl):c)
 
 -- de_deBruijn, funcio que rep un LTdB i el passa a LT
 de_deBruijn :: LTdB -> LT
-de_deBruijn t = fst (de_deBruijn_aux t 0 [])
+de_deBruijn t = de_deBruijn_aux t 0 []
 \end{lstlisting}
 
 Continuant amb els exemples anteriors:
 
 \begin{lstlisting}[language=Haskell]
-*Main> a_deBruijn g (get_cont g)
+*Main> a_deBruijn_i g
 (\. ((\. (\. (1 1))) (\. (\. (1 1)))))
-*Main> de_deBruijn (a_deBruijn g (get_cont g))
-(\x. ((\x'. (\x''. (x' x'))) (\x'. (\x''. (x' x')))))
-*Main> a_deBruijn gprima (get_cont gprima)
+*Main> a_deBruijn_i gprima
 (\. (0 ((\. (\. (0 (1 1)))) (\. (\. (0 (1 1)))))))
-*Main> de_deBruijn (a_deBruijn gprima (get_cont gprima))
-(\x. (x ((\x'. (\x''. (x (x' x')))) (\x'. (\x''. (x (x' x')))))))
-*Main> a_deBruijn t (get_cont t)
+*Main> a_deBruijn_i t
 ((\. (\. (0 ((1 1) 0)))) (\. (\. (0 ((1 1) 0)))))
-*Main> de_deBruijn (a_deBruijn t (get_cont t))
-((\x. (\x'. (x ((x' x') x)))) (\x. (\x'. (x ((x' x') x)))))
-*Main> a_deBruijn y (get_cont y)
+*Main> a_deBruijn_i y
 (\. ((\. (1 (0 0))) (\. (1 (0 0)))))
-*Main> de_deBruijn (a_deBruijn y (get_cont y))
-(\x. ((\x'. (x' (x x))) (\x'. (x' (x x)))))
+*Main> de_deBruijn (a_deBruijn_i g)
+(\x. ((\x. (\x'. (x x))) (\x. (\x'. (x x)))))
+*Main> de_deBruijn (a_deBruijn_i gprima)
+(\x. (x ((\x. (\x'. (x' (x x)))) (\x. (\x'. (x' (x x)))))))
+*Main> de_deBruijn (a_deBruijn_i t)
+((\x. (\x'. (x' ((x x) x')))) (\x. (\x'. (x' ((x x) x')))))
+*Main> de_deBruijn (a_deBruijn_i y)
+(\x. ((\x. (x' (x x))) (\x. (x' (x x)))))
 \end{lstlisting}
 
 \end{document}
