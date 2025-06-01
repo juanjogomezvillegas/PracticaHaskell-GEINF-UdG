@@ -201,9 +201,13 @@ a_deBruijn (Va a) c = VadB (mapeja (head (filter (==a) (map fst c))) c)
 a_deBruijn (Ap t1 t2) c = ApdB (a_deBruijn t1 c) (a_deBruijn t2 c)
 a_deBruijn (Ab _ t) c = AbdB (a_deBruijn t c)
 
+-- a_deBruijn_i, funció que simplifica la crida a la funció a_deBruijn
+a_deBruijn_i :: LT -> LTdB
+a_deBruijn_i t = a_deBruijn t (get_cont t)
+
 -- de_deBruijn_aux, funció auxiliar que donat un enter i un LTdB, retorna el LTdB convertit a LT, el enter es per controlar els noms de les variables
 de_deBruijn_aux :: Int -> LTdB -> LT
-de_deBruijn_aux _ (VadB a) = Va (generar_noms a)
+de_deBruijn_aux nl (VadB a) = Va (generar_noms nl)
 de_deBruijn_aux nl (ApdB t1 t2) = Ap (de_deBruijn_aux nl t1) (de_deBruijn_aux nl t2)
 de_deBruijn_aux nl (AbdB t) = Ab (generar_noms nl) (de_deBruijn_aux (nl+1) t)
 
